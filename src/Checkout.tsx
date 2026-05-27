@@ -25,7 +25,7 @@ function Checkout() {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const city = 'Bogotá';
-  const [state, setState] = useState('');
+  const state = 'Cundinamarca'; // Fixed - no se puede cambiar
   const [notes, setNotes] = useState('');
 
   // Payment method
@@ -373,10 +373,10 @@ function Checkout() {
                     <input
                       type="text"
                       value={state}
-                      onChange={(e) => setState(e.target.value)}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-red-600 transition-colors text-sm"
+                      className="w-full px-4 py-3 border-2 border-gray-300 bg-gray-100 rounded-xl text-sm text-gray-700 cursor-not-allowed"
                       placeholder="Cundinamarca"
-                      required
+                      disabled
+                      readOnly
                     />
                   </div>
 

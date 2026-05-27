@@ -2,6 +2,8 @@ import { motion } from 'framer-motion';
 import { Link, useParams } from 'react-router-dom';
 import { ShoppingCart, User, ChevronDown, Star, Plus, Minus, Check } from 'lucide-react';
 import { useState } from 'react';
+import { useCart } from './contexts/CartContext';
+import CartSidebar from './CartSidebar';
 
 // Product images carousel thumbnails
 const productImages = [
@@ -81,11 +83,24 @@ function ProductDetail() {
   const { id } = useParams();
   const product = productData[id || '1'];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedFlavor, setSelectedFlavor] = useState(1);
   const [purchaseType, setPurchaseType] = useState<'one-time' | 'subscribe'>('one-time');
   const [quantity, setQuantity] = useState(1);
   const [deliveryFrequency, setDeliveryFrequency] = useState('30');
+  const { addItem, getTotalItems } = useCart();
+
+  const handleAddToCart = () => {
+    addItem({
+      id: product.id.toString(),
+      name: product.name,
+      description: product.subtitle,
+      price: purchaseType === 'subscribe' ? product.subscriptionPrice : product.price,
+      image: product.image,
+    });
+    setIsCartOpen(true);
+  };
 
   // Select the correct flavors array based on product
   const flavors = id === '1' ? flavorsWholesale : id === '3' ? flavorsRetail : flavorsWholesale;
@@ -209,14 +224,17 @@ function ProductDetail() {
 
             {/* Cart Icon */}
             <motion.button
+              onClick={() => setIsCartOpen(true)}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               className="p-2 rounded-full hover:bg-gray-100 transition-colors relative"
             >
               <ShoppingCart className="w-6 h-6 text-gray-700" />
-              <span className="absolute -top-1 -right-1 text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold bg-amber-600 text-white">
-                0
-              </span>
+              {getTotalItems() > 0 && (
+                <span className="absolute -top-1 -right-1 text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold bg-amber-600 text-white">
+                  {getTotalItems()}
+                </span>
+              )}
             </motion.button>
           </motion.div>
         </div>
@@ -560,7 +578,10 @@ function ProductDetail() {
                     </div>
                   </div>
 
-                  <button className="flex-1 bg-amber-600 text-white py-4 px-8 rounded-full font-bold text-lg hover:bg-amber-700 transition-colors shadow-xl">
+                  <button
+                    onClick={handleAddToCart}
+                    className="flex-1 bg-amber-600 text-white py-4 px-8 rounded-full font-bold text-lg hover:bg-amber-700 transition-colors shadow-xl"
+                  >
                     AGREGAR AL CARRITO
                   </button>
                 </div>
@@ -669,6 +690,9 @@ function ProductDetail() {
           </div>
         </div>
       </footer>
+
+      {/* Cart Sidebar */}
+      <CartSidebar isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </div>
   );
 }

@@ -1,13 +1,12 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, User, Search, ChevronDown } from 'lucide-react';
+import { ShoppingCart, User, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import CartSidebar from './CartSidebar';
 
 function Farm() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [farmName, setFarmName] = useState('');
 
   return (
     <div className="min-h-screen bg-[#E8E4D9]">

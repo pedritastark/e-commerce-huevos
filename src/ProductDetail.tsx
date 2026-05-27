@@ -286,7 +286,7 @@ function ProductDetail() {
             <div className="flex gap-4">
               {/* Thumbnails */}
               <div className="flex flex-col gap-3">
-                {productImages.map((img, index) => (
+                {productImages.map((_img, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImage(index)}

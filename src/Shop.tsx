@@ -1,10 +1,23 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, User, ChevronDown, Star } from 'lucide-react';
+import { ShoppingCart, User, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 
+interface Product {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  priceRange?: string;
+  originalPrice: number | null;
+  rating: number;
+  reviews: number;
+  image: string;
+  badge: string | null;
+}
+
 // Product data
-const products = [
+const products: Product[] = [
   {
     id: 1,
     name: 'Huevos al Por Mayor',
@@ -336,7 +349,7 @@ function Shop() {
                     <span className="text-2xl font-bold text-gray-800">
                       {product.priceRange || `$${product.price.toLocaleString()}`}
                     </span>
-                    {product.originalPrice && (
+                    {product.originalPrice && typeof product.originalPrice === 'number' && (
                       <span className="text-lg text-gray-500 line-through">
                         ${product.originalPrice.toLocaleString()}
                       </span>

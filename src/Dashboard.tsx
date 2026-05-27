@@ -1,9 +1,11 @@
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, LogOut, Package } from 'lucide-react';
+import { useAuth } from './contexts/AuthContext';
+import { useState, useEffect } from 'react';
 
 // Mock orders data - En producción vendría del backend
-const mockOrders = [
+const defaultOrders = [
   {
     id: 'ORD-001',
     date: '2026-05-25',
@@ -46,17 +48,27 @@ const mockOrders = [
 
 function Dashboard() {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const [orders, setOrders] = useState(defaultOrders);
 
-  // Mock user data - En producción vendría del contexto/estado global
-  const userName = 'Juan Pérez';
+  const userName = user?.name || 'Usuario';
+
+  // Cargar pedidos del localStorage
+  useEffect(() => {
+    const savedOrders = JSON.parse(localStorage.getItem('orders') || '[]');
+    if (savedOrders.length > 0) {
+      // Combinar pedidos guardados con los de ejemplo
+      setOrders([...savedOrders.reverse(), ...defaultOrders]);
+    }
+  }, []);
 
   const handleLogout = () => {
-    // Aquí iría la lógica de logout (limpiar token, etc.)
+    logout();
     navigate('/login');
   };
 
   return (
-    <div className="min-h-screen bg-[#E8E4D9]">
+    <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-50">
         <div className="flex items-center justify-between max-w-7xl mx-auto px-6 py-5">
@@ -123,13 +135,13 @@ function Dashboard() {
             <Package className="w-8 h-8 text-amber-600" />
             <h2 className="text-3xl font-bold text-gray-900">Mis Pedidos</h2>
             <span className="bg-amber-600 text-white px-3 py-1 rounded-full text-sm font-bold">
-              {mockOrders.length}
+              {orders.length}
             </span>
           </div>
 
           {/* Orders List */}
           <div className="space-y-4">
-            {mockOrders.map((order, index) => (
+            {orders.map((order, index) => (
               <motion.div
                 key={order.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -137,7 +149,7 @@ function Dashboard() {
                 transition={{ delay: index * 0.1 }}
               >
                 <Link to={`/pedido/${order.id}`}>
-                  <div className="bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-amber-600">
+                  <div className="bg-[#E8E4D9] rounded-2xl p-6 shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-amber-600">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                       {/* Left Side - Order Info */}
                       <div className="flex-1">
@@ -186,11 +198,11 @@ function Dashboard() {
           </div>
 
           {/* Empty State */}
-          {mockOrders.length === 0 && (
+          {orders.length === 0 && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="bg-white rounded-2xl p-12 text-center"
+              className="bg-[#E8E4D9] rounded-2xl p-12 text-center"
             >
               <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-2xl font-bold text-gray-900 mb-2">

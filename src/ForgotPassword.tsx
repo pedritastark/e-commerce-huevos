@@ -1,82 +1,26 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, User, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
-import { useCart } from './contexts/CartContext';
+import { ShoppingCart, User, ChevronDown, ArrowLeft } from 'lucide-react';
 import CartSidebar from './CartSidebar';
 
-interface Product {
-  id: number;
-  name: string;
-  description: string;
-  price: number;
-  priceRange?: string;
-  originalPrice: number | null;
-  rating: number;
-  reviews: number;
-  image: string;
-  badge: string | null;
-}
-
-// Product data
-const products: Product[] = [
-  {
-    id: 1,
-    name: 'Huevos al Por Mayor',
-    description: 'Torre de 10 cubetas - 30 huevos c/u',
-    price: 95000, // Precio mínimo (C: $95.000)
-    priceRange: 'Desde $95.000',
-    originalPrice: null,
-    rating: 4.8,
-    reviews: 234,
-    image: '📦',
-    badge: 'AHORRO',
-  },
-  {
-    id: 2,
-    name: 'Huevos Campesinos',
-    description: 'Cubeta de 30 huevos',
-    price: 39000,
-    originalPrice: null,
-    rating: 5.0,
-    reviews: 456,
-    image: '🌿',
-    badge: 'POPULAR',
-  },
-  {
-    id: 3,
-    name: 'Huevos por Cubeta',
-    description: 'Cubeta de 30 huevos',
-    price: 11000, // Precio mínimo (C: $11.000)
-    priceRange: 'Desde $11.000',
-    originalPrice: null,
-    rating: 4.9,
-    reviews: 312,
-    image: '🥚',
-    badge: null,
-  },
-];
-
-function Shop() {
+function ForgotPassword() {
+  const [email, setEmail] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const { addItem, getTotalItems } = useCart();
+  const [emailSent, setEmailSent] = useState(false);
 
-  const handleAddToCart = (product: Product) => {
-    addItem({
-      id: product.id.toString(),
-      name: product.name,
-      description: product.description,
-      price: product.price,
-      image: product.image,
-    });
-    setIsCartOpen(true);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('Recuperar contraseña para:', email);
+    // Aquí iría la lógica para enviar el email de recuperación
+    setEmailSent(true);
   };
 
   return (
-    <div className="min-h-screen bg-orange-100">
-      {/* Header with Orange Background */}
-      <header className="bg-orange-100 z-50">
+    <div className="min-h-screen bg-white">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-100 z-50">
         <div className="flex items-center justify-between max-w-full pl-6 pr-6 py-5">
           {/* Left Side - Logo + Navigation */}
           <div className="flex items-center gap-10">
@@ -165,13 +109,15 @@ function Shop() {
             </div>
 
             {/* User Icon */}
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-            >
-              <User className="w-6 h-6 text-gray-700" />
-            </motion.button>
+            <Link to="/login">
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+              >
+                <User className="w-6 h-6 text-gray-700" />
+              </motion.button>
+            </Link>
 
             {/* Cart Icon */}
             <motion.button
@@ -181,11 +127,9 @@ function Shop() {
               className="p-2 rounded-full hover:bg-gray-100 transition-colors relative"
             >
               <ShoppingCart className="w-6 h-6 text-gray-700" />
-              {getTotalItems() > 0 && (
-                <span className="absolute -top-1 -right-1 text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold bg-amber-600 text-white">
-                  {getTotalItems()}
-                </span>
-              )}
+              <span className="absolute -top-1 -right-1 text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold bg-amber-600 text-white">
+                0
+              </span>
             </motion.button>
           </motion.div>
         </div>
@@ -197,13 +141,12 @@ function Shop() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
-          className="absolute top-[80px] left-0 right-0 bg-white z-40 shadow-lg py-12"
+          className="absolute top-[110px] left-0 right-0 bg-white z-40 shadow-lg py-12"
         >
           <div className="max-w-7xl mx-auto px-6">
             <h3 className="text-xl font-bold text-amber-600 mb-8">PRODUCTOS DESTACADOS</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* Product 1 */}
               <Link to="/producto/1" onClick={() => setIsMenuOpen(false)} className="flex flex-col items-center cursor-pointer group">
                 <div className="bg-gradient-to-br from-yellow-100 to-amber-100 rounded-2xl p-6 hover:shadow-xl transition-shadow w-full mb-3">
                   <div className="flex items-center justify-center h-48">
@@ -213,7 +156,6 @@ function Shop() {
                 <h4 className="text-base font-bold text-amber-600 bg-white px-4 py-2 rounded-full">HUEVOS AL POR MAYOR</h4>
               </Link>
 
-              {/* Product 2 */}
               <Link to="/producto/2" onClick={() => setIsMenuOpen(false)} className="flex flex-col items-center cursor-pointer group">
                 <div className="bg-gradient-to-br from-green-100 to-emerald-100 rounded-2xl p-6 hover:shadow-xl transition-shadow w-full mb-3">
                   <div className="flex items-center justify-center h-48">
@@ -223,7 +165,6 @@ function Shop() {
                 <h4 className="text-base font-bold text-amber-600 bg-white px-4 py-2 rounded-full">HUEVOS ORGÁNICOS</h4>
               </Link>
 
-              {/* Product 3 */}
               <Link to="/producto/3" onClick={() => setIsMenuOpen(false)} className="flex flex-col items-center cursor-pointer group">
                 <div className="bg-gradient-to-br from-red-100 to-rose-100 rounded-2xl p-6 hover:shadow-xl transition-shadow w-full mb-3">
                   <div className="flex items-center justify-center h-48">
@@ -233,7 +174,6 @@ function Shop() {
                 <h4 className="text-base font-bold text-amber-600 bg-white px-4 py-2 rounded-full">HUEVOS POR CUBETA</h4>
               </Link>
 
-              {/* Product 4 */}
               <Link to="/comprar" onClick={() => setIsMenuOpen(false)} className="flex flex-col items-center cursor-pointer group">
                 <div className="bg-gradient-to-br from-orange-100 to-yellow-100 rounded-2xl p-6 hover:shadow-xl transition-shadow w-full mb-3">
                   <div className="flex items-center justify-center h-48">
@@ -247,147 +187,122 @@ function Shop() {
         </motion.div>
       )}
 
-      {/* Orange Extension Below Header */}
-      <div className="bg-orange-100 py-8"></div>
-
-      {/* Hero Section - Explore Our Products */}
-      <section className="bg-gradient-to-r from-orange-300 via-yellow-300 to-amber-300 py-8">
-        <div className="max-w-7xl mx-auto px-6">
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-5xl lg:text-6xl font-bold text-center text-orange-600 tracking-wider"
-            style={{
-              textShadow: '2px 2px 0px rgba(255,255,255,0.5)',
-              WebkitTextStroke: '2px white',
-            }}
-          >
-            EXPLORA NUESTROS PRODUCTOS
-          </motion.h1>
-        </div>
-      </section>
-
-      {/* Products Catalog */}
-      <section className="py-20 bg-orange-100">
-        <div className="max-w-7xl mx-auto px-6">
-          {/* Product Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {/* Build Your Own Bundle Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col cursor-pointer group"
+      {/* Forgot Password Content */}
+      <div className="flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-2xl">
+          {/* Back to Login */}
+          <Link to="/login">
+            <motion.button
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex items-center gap-2 text-amber-600 hover:text-amber-700 font-bold mb-8 transition-colors"
             >
-              {/* Special Bundle Card */}
-              <div className="relative w-full bg-gradient-to-b from-orange-500 to-yellow-400 rounded-3xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden">
-                {/* Decorative Emojis */}
-                <div className="absolute top-4 left-4 text-2xl">🥚</div>
-                <div className="absolute top-6 right-6 text-2xl">🥚</div>
-                <div className="absolute top-20 right-4 text-2xl">🥚</div>
-                <div className="absolute bottom-32 left-6 text-2xl">🥚</div>
-                <div className="absolute bottom-20 right-8 text-2xl">🥚</div>
+              <ArrowLeft className="w-5 h-5" />
+              Volver al Login
+            </motion.button>
+          </Link>
 
-                {/* Small Stars */}
-                <div className="absolute top-16 left-12 text-white text-xs">✦</div>
-                <div className="absolute top-24 right-16 text-white text-xs">✦</div>
+          {!emailSent ? (
+            <>
+              {/* Title */}
+              <motion.h1
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-4xl font-bold text-amber-600 text-center mb-4"
+              >
+                Recuperar Contraseña
+              </motion.h1>
 
-                {/* Title */}
-                <h3 className="text-3xl font-bold text-white text-center mb-8 mt-4 relative z-10">
-                  Arma Tu Paquete
-                </h3>
+              <motion.p
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="text-gray-600 text-center mb-8"
+              >
+                Ingresa tu email y te enviaremos un enlace para restablecer tu contraseña
+              </motion.p>
 
-                {/* Grid of Empty Slots */}
-                <div className="grid grid-cols-3 gap-3 mb-6 relative z-10">
-                  {[...Array(6)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="aspect-square bg-yellow-100/80 rounded-xl"
-                    ></div>
-                  ))}
-                </div>
-
-                {/* Product Images in Corners */}
-                <div className="absolute bottom-20 left-2 text-5xl transform -rotate-12">📦</div>
-                <div className="absolute bottom-20 right-2 text-5xl transform rotate-12">📦</div>
-
-                {/* Get Started Button */}
-                <button className="w-full bg-white text-orange-600 py-4 rounded-full font-bold text-lg hover:bg-gray-100 transition-colors shadow-lg relative z-10">
-                  COMENZAR
-                </button>
-              </div>
-            </motion.div>
-
-            {/* Regular Products */}
-            {products.map((product, index) => (
-              <Link key={product.id} to={`/producto/${product.id}`}>
+              {/* Form */}
+              <form onSubmit={handleSubmit}>
+                {/* Email Field */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="flex flex-col items-center cursor-pointer group"
+                  transition={{ delay: 0.2 }}
+                  className="mb-6"
                 >
-                {/* Card with Image Only */}
-                <div className="relative w-full mb-4">
-                  {/* Badge */}
-                  {product.badge && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-full z-10">
-                      {product.badge}
-                    </div>
-                  )}
+                  <label className="block text-amber-600 font-bold text-sm mb-2">
+                    EMAIL
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-amber-600 rounded-full focus:outline-none focus:border-amber-700 transition-colors text-sm"
+                    placeholder="tu@email.com"
+                    required
+                  />
+                </motion.div>
 
-                  {/* Product Image Card */}
-                  <div className="bg-white rounded-3xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300">
-                    <div className="flex items-center justify-center h-48">
-                      <span className="text-9xl">{product.image}</span>
-                    </div>
-                  </div>
-                </div>
+                {/* Submit Button */}
+                <motion.button
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  type="submit"
+                  className="w-full bg-amber-600 text-white py-3 rounded-full font-bold text-sm hover:bg-amber-700 transition-colors"
+                >
+                  ENVIAR ENLACE DE RECUPERACIÓN
+                </motion.button>
+              </form>
+            </>
+          ) : (
+            /* Success Message */
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center"
+            >
+              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
 
-                {/* Content Outside Card */}
-                <div className="w-full flex flex-col items-center">
-                  {/* Product Name */}
-                  <h3 className="text-xl font-bold text-orange-600 mb-2 text-center">
-                    {product.name}
-                  </h3>
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                ¡Email Enviado!
+              </h2>
 
-                  {/* Rating - Dots */}
-                  <div className="flex items-center gap-1 mb-3">
-                    {[...Array(3)].map((_, i) => (
-                      <div
-                        key={i}
-                        className={`w-2 h-2 rounded-full ${
-                          i === 0 ? 'bg-orange-600' : 'bg-gray-300'
-                        }`}
-                      />
-                    ))}
-                  </div>
+              <p className="text-gray-600 mb-2">
+                Hemos enviado un enlace de recuperación a:
+              </p>
+              <p className="text-amber-600 font-bold mb-6">
+                {email}
+              </p>
 
-                  {/* Price */}
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="text-2xl font-bold text-gray-800">
-                      {product.priceRange || `$${product.price.toLocaleString()}`}
-                    </span>
-                    {product.originalPrice && typeof product.originalPrice === 'number' && (
-                      <span className="text-lg text-gray-500 line-through">
-                        ${product.originalPrice.toLocaleString()}
-                      </span>
-                    )}
-                  </div>
+              <p className="text-gray-600 mb-8">
+                Revisa tu bandeja de entrada y sigue las instrucciones para restablecer tu contraseña.
+              </p>
 
-                  {/* Add to Cart Button */}
-                  <button
-                    onClick={() => handleAddToCart(product)}
-                    className="w-full bg-white text-orange-600 py-3 rounded-full font-bold hover:bg-gray-100 transition-colors shadow-lg"
-                  >
-                    COMPRAR AHORA
-                  </button>
-                </div>
-              </motion.div>
-            </Link>
-            ))}
-          </div>
+              <Link to="/login">
+                <button className="bg-amber-600 text-white px-8 py-3 rounded-full font-bold hover:bg-amber-700 transition-colors">
+                  Volver al Login
+                </button>
+              </Link>
+
+              <p className="text-gray-500 text-sm mt-6">
+                ¿No recibiste el email?{' '}
+                <button
+                  onClick={() => setEmailSent(false)}
+                  className="text-amber-600 font-bold hover:text-amber-700 underline"
+                >
+                  Reenviar
+                </button>
+              </p>
+            </motion.div>
+          )}
         </div>
-      </section>
+      </div>
 
       {/* Footer */}
       <footer className="bg-gradient-to-br from-gray-900 to-black text-white py-16 mt-20">
@@ -487,4 +402,4 @@ function Shop() {
   );
 }
 
-export default Shop;
+export default ForgotPassword;

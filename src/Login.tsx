@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { ShoppingCart, User, ChevronDown } from 'lucide-react';
 import CartSidebar from './CartSidebar';
+import { useAuth } from './contexts/AuthContext';
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -10,13 +11,16 @@ function Login() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Login:', { email, password });
-    // Aquí iría la lógica de autenticación con el backend
-    // Por ahora, simplemente redirigimos al dashboard
-    navigate('/dashboard');
+    try {
+      await login(email, password);
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Error al iniciar sesión:', error);
+    }
   };
 
   return (

@@ -1,13 +1,24 @@
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ShoppingCart, User, ChevronDown, Truck, Tag, Wallet } from 'lucide-react';
 import CartSidebar from './CartSidebar';
+import { useCart } from './contexts/CartContext';
+import { useAuth } from './contexts/AuthContext';
 
 function Checkout() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const navigate = useNavigate();
+  const { items, getTotalPrice, clearCart, getTotalItems } = useCart();
+  const { isAuthenticated } = useAuth();
+
+  // Redirigir si el carrito está vacío
+  useEffect(() => {
+    if (items.length === 0) {
+      navigate('/comprar');
+    }
+  }, [items.length, navigate]);
 
   // Shipping form
   const [fullName, setFullName] = useState('');
@@ -25,28 +36,11 @@ function Checkout() {
   const [appliedCoupon, setAppliedCoupon] = useState('');
   const [discount, setDiscount] = useState(0);
 
-  // Order items (mock data - en producción vendría del carrito)
-  const orderItems = [
-    {
-      id: 1,
-      name: 'Torre de Huevos AA',
-      variety: 'AA',
-      quantity: 2,
-      price: 120000,
-      originalPrice: 150000,
-    },
-    {
-      id: 2,
-      name: 'Huevos Campesinos',
-      variety: 'Orgánicos',
-      quantity: 1,
-      price: 39000,
-      originalPrice: 39000,
-    },
-  ];
+  // Order items from cart
+  const orderItems = items;
 
-  const subtotal = orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shipping = 15000;
+  const subtotal = getTotalPrice();
+  const shipping = 0; // Envío gratis
   const discountAmount = subtotal * (discount / 100);
   const total = subtotal + shipping - discountAmount;
 
@@ -65,14 +59,45 @@ function Checkout() {
 
   const handleConfirmOrder = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Order confirmed:', {
-      shipping: { fullName, phone, address, city, state, notes },
-      paymentMethod,
-      coupon: appliedCoupon,
-      total,
-    });
-    // Navigate to order confirmation
-    navigate('/order-confirmation/12345');
+
+    // Crear el pedido
+    const newOrder = {
+      id: `ORD-${Date.now()}`,
+      date: new Date().toISOString().split('T')[0],
+      total: total,
+      status: 'Pendiente',
+      statusColor: 'bg-yellow-500',
+      items: items.map(item => ({
+        name: item.name,
+        description: item.description,
+        quantity: item.quantity,
+        unit: 'cubeta',
+        eggsPerUnit: 30,
+        pricePerUnit: item.price,
+        price: item.price * item.quantity,
+        image: item.image
+      })),
+      address: `${address}, ${city}, ${state}`,
+      paymentMethod: paymentMethod === 'cash' ? 'Efectivo' : 'Transferencia',
+    };
+
+    // En producción, aquí enviarías el pedido al backend
+    console.log('Order confirmed:', newOrder);
+
+    // Guardar el pedido en localStorage (temporal)
+    const savedOrders = JSON.parse(localStorage.getItem('orders') || '[]');
+    savedOrders.push(newOrder);
+    localStorage.setItem('orders', JSON.stringify(savedOrders));
+
+    // Limpiar el carrito
+    clearCart();
+
+    // Redirigir al dashboard para ver el pedido
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    } else {
+      navigate('/login');
+    }
   };
 
   return (

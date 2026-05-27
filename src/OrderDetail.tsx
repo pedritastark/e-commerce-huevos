@@ -1,9 +1,10 @@
 import { motion } from 'framer-motion';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Package, MapPin, CreditCard, Truck, CheckCircle, Clock } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 // Mock orders data - debe coincidir con Dashboard
-const mockOrders = [
+const defaultOrders = [
   {
     id: 'ORD-001',
     date: '2026-05-25',
@@ -11,7 +12,16 @@ const mockOrders = [
     status: 'Entregado',
     statusColor: 'bg-green-500',
     items: [
-      { name: 'Huevos al Por Mayor', quantity: 1, price: 95000, image: '📦' }
+      {
+        name: 'Huevos al Por Mayor',
+        description: 'Torre de 10 cubetas',
+        quantity: 10,
+        unit: 'cubetas',
+        eggsPerUnit: 30,
+        pricePerUnit: 9500,
+        price: 95000,
+        image: '📦'
+      }
     ],
     address: 'Calle 123 #45-67, Bogotá, Colombia',
     paymentMethod: 'Tarjeta de crédito ****1234',
@@ -24,8 +34,26 @@ const mockOrders = [
     status: 'Enviado',
     statusColor: 'bg-blue-500',
     items: [
-      { name: 'Huevos Campesinos', quantity: 1, price: 39000, image: '🌿' },
-      { name: 'Huevos por Cubeta', quantity: 1, price: 11000, image: '🥚' }
+      {
+        name: 'Huevos Campesinos',
+        description: 'Cubeta de huevos campesinos',
+        quantity: 3,
+        unit: 'cubetas',
+        eggsPerUnit: 30,
+        pricePerUnit: 13000,
+        price: 39000,
+        image: '🌿'
+      },
+      {
+        name: 'Huevos por Cubeta (AA)',
+        description: 'Cubeta de huevos categoría AA',
+        quantity: 1,
+        unit: 'cubeta',
+        eggsPerUnit: 30,
+        pricePerUnit: 11000,
+        price: 11000,
+        image: '🥚'
+      }
     ],
     address: 'Carrera 7 #10-20, Bogotá, Colombia',
     paymentMethod: 'Tarjeta de crédito ****1234',
@@ -39,7 +67,16 @@ const mockOrders = [
     status: 'Pendiente',
     statusColor: 'bg-yellow-500',
     items: [
-      { name: 'Huevos Campesinos', quantity: 1, price: 39000, image: '🌿' }
+      {
+        name: 'Huevos Campesinos',
+        description: 'Cubeta de huevos campesinos',
+        quantity: 3,
+        unit: 'cubetas',
+        eggsPerUnit: 30,
+        pricePerUnit: 13000,
+        price: 39000,
+        image: '🌿'
+      }
     ],
     address: 'Avenida 68 #25-30, Bogotá, Colombia',
     paymentMethod: 'PSE',
@@ -50,9 +87,18 @@ const mockOrders = [
 function OrderDetail() {
   const { orderId } = useParams();
   const navigate = useNavigate();
+  const [allOrders, setAllOrders] = useState(defaultOrders);
+
+  // Cargar pedidos del localStorage
+  useEffect(() => {
+    const savedOrders = JSON.parse(localStorage.getItem('orders') || '[]');
+    if (savedOrders.length > 0) {
+      setAllOrders([...savedOrders, ...defaultOrders]);
+    }
+  }, []);
 
   // Buscar la orden
-  const order = mockOrders.find(o => o.id === orderId);
+  const order = allOrders.find(o => o.id === orderId);
 
   // Si no se encuentra la orden, redirigir
   if (!order) {
@@ -77,7 +123,7 @@ function OrderDetail() {
   };
 
   return (
-    <div className="min-h-screen bg-[#E8E4D9]">
+    <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-5">
@@ -122,7 +168,7 @@ function OrderDetail() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white rounded-2xl p-8 shadow-md mb-8"
+          className="bg-[#E8E4D9] rounded-2xl p-8 shadow-md mb-8"
         >
           <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
             <Truck className="w-6 h-6 text-amber-600" />
@@ -194,25 +240,44 @@ function OrderDetail() {
             transition={{ delay: 0.2 }}
             className="lg:col-span-2"
           >
-            <div className="bg-white rounded-2xl p-8 shadow-md">
+            <div className="bg-[#E8E4D9] rounded-2xl p-8 shadow-md">
               <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                 <Package className="w-6 h-6 text-amber-600" />
                 Productos
               </h2>
 
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {order.items.map((item, index) => (
-                  <div key={index} className="flex items-center gap-4 pb-4 border-b border-gray-200 last:border-0">
-                    <div className="w-20 h-20 bg-gradient-to-br from-amber-100 to-orange-100 rounded-xl flex items-center justify-center text-4xl">
-                      {item.image}
+                  <div key={index} className="pb-6 border-b border-gray-200 last:border-0">
+                    <div className="flex items-start gap-4">
+                      <div className="w-24 h-24 bg-gradient-to-br from-amber-100 to-orange-100 rounded-xl flex items-center justify-center text-5xl flex-shrink-0">
+                        {item.image}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-bold text-lg text-gray-900 mb-1">{item.name}</h3>
+                        <p className="text-gray-600 mb-3">{item.description}</p>
+
+                        {/* Detalles del producto */}
+                        <div className="space-y-1 text-sm">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-gray-700">Cantidad:</span>
+                            <span className="text-gray-900">{item.quantity} {item.unit} × {item.eggsPerUnit} huevos = {item.quantity * item.eggsPerUnit} huevos totales</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-gray-700">Precio por {item.unit === 'cubetas' && item.quantity > 1 ? 'cubeta' : item.unit}:</span>
+                            <span className="text-gray-900">${item.pricePerUnit.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Precio total del producto */}
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-sm text-gray-500 mb-1">Subtotal</p>
+                        <p className="font-bold text-2xl text-amber-600">
+                          ${item.price.toLocaleString()}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-gray-900">{item.name}</h3>
-                      <p className="text-gray-600">Cantidad: {item.quantity}</p>
-                    </div>
-                    <p className="font-bold text-xl text-amber-600">
-                      ${item.price.toLocaleString()}
-                    </p>
                   </div>
                 ))}
               </div>
@@ -243,7 +308,7 @@ function OrderDetail() {
             className="space-y-6"
           >
             {/* Shipping Address */}
-            <div className="bg-white rounded-2xl p-6 shadow-md">
+            <div className="bg-[#E8E4D9] rounded-2xl p-6 shadow-md">
               <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-amber-600" />
                 Dirección de Envío
@@ -254,7 +319,7 @@ function OrderDetail() {
             </div>
 
             {/* Payment Method */}
-            <div className="bg-white rounded-2xl p-6 shadow-md">
+            <div className="bg-[#E8E4D9] rounded-2xl p-6 shadow-md">
               <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <CreditCard className="w-5 h-5 text-amber-600" />
                 Método de Pago

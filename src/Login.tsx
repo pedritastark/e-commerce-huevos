@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { ShoppingCart, User, ChevronDown } from 'lucide-react';
 import CartSidebar from './CartSidebar';
@@ -9,10 +9,14 @@ function Login() {
   const [password, setPassword] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const navigate = useNavigate();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Login:', { email, password });
+    // Aquí iría la lógica de autenticación con el backend
+    // Por ahora, simplemente redirigimos al dashboard
+    navigate('/dashboard');
   };
 
   return (

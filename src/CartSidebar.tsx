@@ -75,7 +75,10 @@ function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                     Agrega productos para comenzar tu compra
                   </p>
                   <button
-                    onClick={onClose}
+                    onClick={() => {
+                      onClose();
+                      navigate('/comprar');
+                    }}
                     className="bg-amber-600 text-white px-6 py-3 rounded-full font-bold hover:bg-amber-700 transition-colors"
                   >
                     Ir a la Tienda

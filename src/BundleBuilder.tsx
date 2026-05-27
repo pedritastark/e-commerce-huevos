@@ -218,34 +218,7 @@ function BundleBuilder() {
           <div>
             <h2 className="text-4xl font-bold text-amber-900 mb-8">PRODUCTOS DESTACADOS</h2>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {/* Huevos Campesinos */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-amber-100 rounded-3xl p-4 border-2 border-amber-900 flex flex-col"
-              >
-                <div className="bg-white rounded-2xl mb-3 aspect-[3/4] flex items-center justify-center">
-                  <span className="text-7xl">🌿</span>
-                </div>
-                <div className="flex items-center justify-center gap-1 mb-2">
-                  <h3 className="text-sm font-bold text-amber-900 text-center">HUEVOS CAMPESINOS</h3>
-                  <Info className="w-4 h-4 text-amber-900" />
-                </div>
-                <button
-                  onClick={() => addProduct({
-                    id: 'campesinos',
-                    name: 'Huevos Campesinos',
-                    type: 'campesinos',
-                    price: 39000,
-                    emoji: '🌿'
-                  })}
-                  disabled={selectedProducts.length >= bundleSize}
-                  className="w-full bg-amber-900 text-white py-2 rounded-full font-bold text-sm hover:bg-amber-800 transition-colors disabled:bg-gray-400"
-                >
-                  + AGREGAR
-                </button>
-              </motion.div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
 
               {/* Huevos por Cubeta - Varieties */}
               {cubetaVarieties.map((variety, index) => (
@@ -309,7 +282,7 @@ function BundleBuilder() {
                         : 'bg-white text-amber-900 border-amber-900'
                     }`}
                   >
-                    2 CUBETAS
+                    2 TORRES
                   </button>
 
                   <button
@@ -323,7 +296,7 @@ function BundleBuilder() {
                         : 'bg-white text-amber-900 border-amber-900'
                     }`}
                   >
-                    3 CUBETAS
+                    3 TORRES
                     <span className="absolute -top-1.5 -right-1.5 text-xs px-1.5 py-0.5 rounded-full font-bold bg-yellow-300 text-amber-900">
                       -$2.000
                     </span>
@@ -340,7 +313,7 @@ function BundleBuilder() {
                         : 'bg-white text-amber-900 border-amber-900'
                     }`}
                   >
-                    4 CUBETAS
+                    4 TORRES
                     <span className="absolute -top-1.5 -right-1.5 text-xs px-1.5 py-0.5 rounded-full font-bold bg-yellow-300 text-amber-900">
                       -$5.000
                     </span>

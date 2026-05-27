@@ -18,42 +18,19 @@ interface Product {
   badge: string | null;
 }
 
-// Product data
+// Product data - Solo mostramos Huevos al Por Mayor
 const products: Product[] = [
   {
     id: 1,
     name: 'Huevos al Por Mayor',
     description: 'Torre de 10 cubetas - 30 huevos c/u',
-    price: 95000, // Precio mínimo (C: $95.000)
+    price: 95000, // Precio por torre
     priceRange: 'Desde $95.000',
     originalPrice: null,
     rating: 4.8,
     reviews: 234,
     image: '📦',
     badge: 'AHORRO',
-  },
-  {
-    id: 2,
-    name: 'Huevos Campesinos',
-    description: 'Cubeta de 30 huevos',
-    price: 39000,
-    originalPrice: null,
-    rating: 5.0,
-    reviews: 456,
-    image: '🌿',
-    badge: 'POPULAR',
-  },
-  {
-    id: 3,
-    name: 'Huevos por Cubeta',
-    description: 'Cubeta de 30 huevos',
-    price: 11000, // Precio mínimo (C: $11.000)
-    priceRange: 'Desde $11.000',
-    originalPrice: null,
-    rating: 4.9,
-    reviews: 312,
-    image: '🥚',
-    badge: null,
   },
 ];
 
@@ -202,8 +179,8 @@ function Shop() {
           <div className="max-w-7xl mx-auto px-6">
             <h3 className="text-xl font-bold text-amber-600 mb-8">PRODUCTOS DESTACADOS</h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* Product 1 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-3xl mx-auto">
+              {/* Product 1 - Solo mostramos Huevos al Por Mayor */}
               <Link to="/producto/1" onClick={() => setIsMenuOpen(false)} className="flex flex-col items-center cursor-pointer group">
                 <div className="bg-gradient-to-br from-yellow-100 to-amber-100 rounded-2xl p-6 hover:shadow-xl transition-shadow w-full mb-3">
                   <div className="flex items-center justify-center h-48">
@@ -213,34 +190,24 @@ function Shop() {
                 <h4 className="text-base font-bold text-amber-600 bg-white px-4 py-2 rounded-full">HUEVOS AL POR MAYOR</h4>
               </Link>
 
-              {/* Product 2 */}
-              <Link to="/producto/2" onClick={() => setIsMenuOpen(false)} className="flex flex-col items-center cursor-pointer group">
-                <div className="bg-gradient-to-br from-green-100 to-emerald-100 rounded-2xl p-6 hover:shadow-xl transition-shadow w-full mb-3">
-                  <div className="flex items-center justify-center h-48">
-                    <span className="text-8xl">🌿</span>
-                  </div>
-                </div>
-                <h4 className="text-base font-bold text-amber-600 bg-white px-4 py-2 rounded-full">HUEVOS ORGÁNICOS</h4>
-              </Link>
-
-              {/* Product 3 */}
-              <Link to="/producto/3" onClick={() => setIsMenuOpen(false)} className="flex flex-col items-center cursor-pointer group">
-                <div className="bg-gradient-to-br from-red-100 to-rose-100 rounded-2xl p-6 hover:shadow-xl transition-shadow w-full mb-3">
-                  <div className="flex items-center justify-center h-48">
-                    <span className="text-8xl">🥚</span>
-                  </div>
-                </div>
-                <h4 className="text-base font-bold text-amber-600 bg-white px-4 py-2 rounded-full">HUEVOS POR CUBETA</h4>
-              </Link>
-
-              {/* Product 4 */}
-              <Link to="/comprar" onClick={() => setIsMenuOpen(false)} className="flex flex-col items-center cursor-pointer group">
+              {/* Ver producto */}
+              <Link to="/producto/1" onClick={() => setIsMenuOpen(false)} className="flex flex-col items-center cursor-pointer group">
                 <div className="bg-gradient-to-br from-orange-100 to-yellow-100 rounded-2xl p-6 hover:shadow-xl transition-shadow w-full mb-3">
                   <div className="flex items-center justify-center h-48">
                     <span className="text-8xl">🛒</span>
                   </div>
                 </div>
-                <h4 className="text-base font-bold text-amber-600 bg-white px-4 py-2 rounded-full">VER TODOS</h4>
+                <h4 className="text-base font-bold text-amber-600 bg-white px-4 py-2 rounded-full">VER PRODUCTO</h4>
+              </Link>
+
+              {/* Ir a tienda */}
+              <Link to="/comprar" onClick={() => setIsMenuOpen(false)} className="flex flex-col items-center cursor-pointer group">
+                <div className="bg-gradient-to-br from-amber-100 to-orange-100 rounded-2xl p-6 hover:shadow-xl transition-shadow w-full mb-3">
+                  <div className="flex items-center justify-center h-48">
+                    <span className="text-8xl">🏪</span>
+                  </div>
+                </div>
+                <h4 className="text-base font-bold text-amber-600 bg-white px-4 py-2 rounded-full">IR A LA TIENDA</h4>
               </Link>
             </div>
           </div>

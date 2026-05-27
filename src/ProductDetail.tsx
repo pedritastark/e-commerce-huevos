@@ -87,18 +87,22 @@ function ProductDetail() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedFlavor, setSelectedFlavor] = useState(1);
   const [purchaseType, setPurchaseType] = useState<'one-time' | 'subscribe'>('one-time');
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(2); // Mínimo 2 torres
   const [deliveryFrequency, setDeliveryFrequency] = useState('30');
+  const minQuantity = 2; // Cantidad mínima de torres
   const { addItem, getTotalItems } = useCart();
 
   const handleAddToCart = () => {
-    addItem({
-      id: product.id.toString(),
-      name: product.name,
-      description: product.subtitle,
-      price: purchaseType === 'subscribe' ? product.subscriptionPrice : product.price,
-      image: product.image,
-    });
+    // Agregar la cantidad especificada al carrito
+    for (let i = 0; i < quantity; i++) {
+      addItem({
+        id: product.id.toString(),
+        name: product.name,
+        description: product.subtitle,
+        price: purchaseType === 'subscribe' ? product.subscriptionPrice : product.price,
+        image: product.image,
+      });
+    }
     setIsCartOpen(true);
   };
 
@@ -563,8 +567,9 @@ function ProductDetail() {
                     <span className="font-bold text-amber-900">CANTIDAD</span>
                     <div className="flex items-center gap-3 bg-white rounded-full px-4 py-2 border-2 border-amber-600">
                       <button
-                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                        className="w-8 h-8 flex items-center justify-center hover:bg-amber-100 rounded-full transition-colors"
+                        onClick={() => setQuantity(Math.max(minQuantity, quantity - 1))}
+                        className="w-8 h-8 flex items-center justify-center hover:bg-amber-100 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={quantity <= minQuantity}
                       >
                         <Minus className="w-4 h-4 text-amber-900" />
                       </button>

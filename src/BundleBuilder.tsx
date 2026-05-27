@@ -45,8 +45,9 @@ function BundleBuilder() {
   };
 
   const getBundleSavings = () => {
-    if (bundleSize === 3) return 2000;
-    if (bundleSize === 4) return 5000;
+    const total = getTotalPrice();
+    if (bundleSize === 3) return Math.round(total * 0.02); // 2%
+    if (bundleSize === 4) return Math.round(total * 0.05); // 5%
     return 0;
   };
 
@@ -298,7 +299,7 @@ function BundleBuilder() {
                   >
                     3 TORRES
                     <span className="absolute -top-1.5 -right-1.5 text-xs px-1.5 py-0.5 rounded-full font-bold bg-yellow-300 text-amber-900">
-                      -$2.000
+                      -2%
                     </span>
                   </button>
 
@@ -315,7 +316,7 @@ function BundleBuilder() {
                   >
                     4 TORRES
                     <span className="absolute -top-1.5 -right-1.5 text-xs px-1.5 py-0.5 rounded-full font-bold bg-yellow-300 text-amber-900">
-                      -$5.000
+                      -5%
                     </span>
                   </button>
                 </div>

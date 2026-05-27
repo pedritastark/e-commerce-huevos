@@ -10,7 +10,7 @@ function Checkout() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const navigate = useNavigate();
-  const { items, getTotalPrice, clearCart, getTotalItems } = useCart();
+  const { items, getTotalPrice, clearCart } = useCart();
   const { isAuthenticated } = useAuth();
 
   // Redirigir si el carrito está vacío
@@ -481,18 +481,13 @@ function Checkout() {
                       </div>
                       <div className="flex-1">
                         <p className="font-bold text-sm text-gray-900">{item.name}</p>
-                        <p className="text-xs text-gray-600">{item.variety}</p>
+                        <p className="text-xs text-gray-600">{item.description}</p>
                         <p className="text-xs text-gray-600">Cantidad: {item.quantity}</p>
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-red-600">
                           ${(item.price * item.quantity).toLocaleString('es-CO')}
                         </p>
-                        {item.originalPrice > item.price && (
-                          <p className="text-xs text-gray-400 line-through">
-                            ${(item.originalPrice * item.quantity).toLocaleString('es-CO')}
-                          </p>
-                        )}
                       </div>
                     </div>
                   ))}

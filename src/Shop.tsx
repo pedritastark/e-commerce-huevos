@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, User, ChevronDown } from 'lucide-react';
+import { ShoppingCart, User } from 'lucide-react';
 import { useState } from 'react';
 import { useCart } from './contexts/CartContext';
+import { useAuth } from './contexts/AuthContext';
 import CartSidebar from './CartSidebar';
 
 interface Product {
@@ -35,9 +36,9 @@ const products: Product[] = [
 ];
 
 function Shop() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const { addItem, getTotalItems } = useCart();
+  const { user } = useAuth();
 
   const handleAddToCart = (product: Product) => {
     addItem({
@@ -87,17 +88,17 @@ function Shop() {
                 Encuéntranos
               </motion.button>
 
-              {/* Nuestros productos with dropdown */}
-              <motion.button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="font-bold text-lg transition-colors text-gray-700 hover:text-amber-600 flex items-center gap-1"
-              >
-                Nuestros productos
-                <ChevronDown className="w-5 h-5" />
-              </motion.button>
+              {/* Nuestros productos - Direct link */}
+              <Link to="/comprar">
+                <motion.button
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="font-bold text-lg transition-colors text-gray-700 hover:text-amber-600"
+                >
+                  Nuestros productos
+                </motion.button>
+              </Link>
 
               <Link to="/granja">
                 <motion.button
@@ -142,13 +143,17 @@ function Shop() {
             </div>
 
             {/* User Icon */}
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-            >
-              <User className="w-6 h-6 text-gray-700" />
-            </motion.button>
+            <Link to={user ? "/dashboard" : "/login"}>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className={`p-2 rounded-full transition-colors ${
+                  user ? 'bg-green-100 hover:bg-green-200' : 'hover:bg-gray-100'
+                }`}
+              >
+                <User className={`w-6 h-6 ${user ? 'text-green-600' : 'text-gray-700'}`} />
+              </motion.button>
+            </Link>
 
             {/* Cart Icon */}
             <motion.button
@@ -168,51 +173,6 @@ function Shop() {
         </div>
       </header>
 
-      {/* Dropdown Menu */}
-      {isMenuOpen && (
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          className="absolute top-[80px] left-0 right-0 bg-white z-40 shadow-lg py-12"
-        >
-          <div className="max-w-7xl mx-auto px-6">
-            <h3 className="text-xl font-bold text-amber-600 mb-8">PRODUCTOS DESTACADOS</h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-3xl mx-auto">
-              {/* Product 1 - Solo mostramos Huevos al Por Mayor */}
-              <Link to="/producto/1" onClick={() => setIsMenuOpen(false)} className="flex flex-col items-center cursor-pointer group">
-                <div className="bg-gradient-to-br from-yellow-100 to-amber-100 rounded-2xl p-6 hover:shadow-xl transition-shadow w-full mb-3">
-                  <div className="flex items-center justify-center h-48">
-                    <span className="text-8xl">📦</span>
-                  </div>
-                </div>
-                <h4 className="text-base font-bold text-amber-600 bg-white px-4 py-2 rounded-full">HUEVOS AL POR MAYOR</h4>
-              </Link>
-
-              {/* Ver producto */}
-              <Link to="/producto/1" onClick={() => setIsMenuOpen(false)} className="flex flex-col items-center cursor-pointer group">
-                <div className="bg-gradient-to-br from-orange-100 to-yellow-100 rounded-2xl p-6 hover:shadow-xl transition-shadow w-full mb-3">
-                  <div className="flex items-center justify-center h-48">
-                    <span className="text-8xl">🛒</span>
-                  </div>
-                </div>
-                <h4 className="text-base font-bold text-amber-600 bg-white px-4 py-2 rounded-full">VER PRODUCTO</h4>
-              </Link>
-
-              {/* Ir a tienda */}
-              <Link to="/comprar" onClick={() => setIsMenuOpen(false)} className="flex flex-col items-center cursor-pointer group">
-                <div className="bg-gradient-to-br from-amber-100 to-orange-100 rounded-2xl p-6 hover:shadow-xl transition-shadow w-full mb-3">
-                  <div className="flex items-center justify-center h-48">
-                    <span className="text-8xl">🏪</span>
-                  </div>
-                </div>
-                <h4 className="text-base font-bold text-amber-600 bg-white px-4 py-2 rounded-full">IR A LA TIENDA</h4>
-              </Link>
-            </div>
-          </div>
-        </motion.div>
-      )}
 
       {/* Orange Extension Below Header */}
       <div className="bg-orange-100 py-8"></div>
@@ -223,10 +183,9 @@ function Shop() {
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-5xl lg:text-6xl font-bold text-center text-orange-600 tracking-wider"
+            className="text-5xl lg:text-7xl font-bold text-center text-orange-600 tracking-wide"
             style={{
-              textShadow: '2px 2px 0px rgba(255,255,255,0.5)',
-              WebkitTextStroke: '2px white',
+              textShadow: '3px 3px 0px rgba(255,255,255,0.7)',
             }}
           >
             EXPLORA NUESTROS PRODUCTOS
@@ -238,120 +197,124 @@ function Shop() {
       <section className="py-20 bg-orange-100">
         <div className="max-w-7xl mx-auto px-6">
           {/* Product Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {/* Build Your Own Bundle Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col cursor-pointer group"
-            >
-              {/* Special Bundle Card */}
-              <div className="relative w-full bg-gradient-to-b from-orange-500 to-yellow-400 rounded-3xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden">
-                {/* Decorative Emojis */}
-                <div className="absolute top-4 left-4 text-2xl">🥚</div>
-                <div className="absolute top-6 right-6 text-2xl">🥚</div>
-                <div className="absolute top-20 right-4 text-2xl">🥚</div>
-                <div className="absolute bottom-32 left-6 text-2xl">🥚</div>
-                <div className="absolute bottom-20 right-8 text-2xl">🥚</div>
-
-                {/* Small Stars */}
-                <div className="absolute top-16 left-12 text-white text-xs">✦</div>
-                <div className="absolute top-24 right-16 text-white text-xs">✦</div>
-
-                {/* Title */}
-                <h3 className="text-3xl font-bold text-white text-center mb-8 mt-4 relative z-10">
-                  Arma Tu Paquete
-                </h3>
-
-                {/* Grid of Empty Slots */}
-                <div className="grid grid-cols-3 gap-3 mb-6 relative z-10">
-                  {[...Array(6)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="aspect-square bg-yellow-100/80 rounded-xl"
-                    ></div>
-                  ))}
-                </div>
-
-                {/* Product Images in Corners */}
-                <div className="absolute bottom-20 left-2 text-5xl transform -rotate-12">📦</div>
-                <div className="absolute bottom-20 right-2 text-5xl transform rotate-12">📦</div>
-
-                {/* Get Started Button */}
-                <button className="w-full bg-white text-orange-600 py-4 rounded-full font-bold text-lg hover:bg-gray-100 transition-colors shadow-lg relative z-10">
-                  COMENZAR
-                </button>
-              </div>
-            </motion.div>
-
-            {/* Regular Products */}
-            {products.map((product, index) => (
-              <Link key={product.id} to={`/producto/${product.id}`}>
+          <div className="flex justify-center">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl">
+              {/* Build Your Own Bundle Card */}
+              <Link to="/arma-tu-paquete">
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="flex flex-col items-center cursor-pointer group"
+                  className="flex flex-col cursor-pointer group"
                 >
-                {/* Card with Image Only */}
-                <div className="relative w-full mb-4">
-                  {/* Badge */}
-                  {product.badge && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-full z-10">
-                      {product.badge}
+                  {/* Special Bundle Card */}
+                  <div className="relative w-full bg-gradient-to-b from-orange-500 to-yellow-400 rounded-3xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden">
+                    {/* Decorative Emojis */}
+                    <div className="absolute top-4 left-4 text-2xl">🥚</div>
+                    <div className="absolute top-6 right-6 text-2xl">🥚</div>
+                    <div className="absolute top-20 right-4 text-2xl">🥚</div>
+                    <div className="absolute bottom-32 left-6 text-2xl">🥚</div>
+                    <div className="absolute bottom-20 right-8 text-2xl">🥚</div>
+
+                    {/* Small Stars */}
+                    <div className="absolute top-16 left-12 text-white text-xs">✦</div>
+                    <div className="absolute top-24 right-16 text-white text-xs">✦</div>
+
+                    {/* Title */}
+                    <h3 className="text-3xl font-bold text-white text-center mb-8 mt-4 relative z-10">
+                      Arma Tu Paquete
+                    </h3>
+
+                    {/* Grid of Empty Slots */}
+                    <div className="grid grid-cols-3 gap-3 mb-6 relative z-10">
+                      {[...Array(6)].map((_, i) => (
+                        <div
+                          key={i}
+                          className="aspect-square bg-yellow-100/80 rounded-xl"
+                        ></div>
+                      ))}
                     </div>
-                  )}
 
-                  {/* Product Image Card */}
-                  <div className="bg-white rounded-3xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300">
-                    <div className="flex items-center justify-center h-48">
-                      <span className="text-9xl">{product.image}</span>
-                    </div>
+                    {/* Product Images in Corners */}
+                    <div className="absolute bottom-20 left-2 text-5xl transform -rotate-12">📦</div>
+                    <div className="absolute bottom-20 right-2 text-5xl transform rotate-12">📦</div>
+
+                    {/* Get Started Button */}
+                    <button className="w-full bg-white text-orange-600 py-4 rounded-full font-bold text-lg hover:bg-gray-100 transition-colors shadow-lg relative z-10">
+                      COMENZAR
+                    </button>
                   </div>
-                </div>
+                </motion.div>
+              </Link>
 
-                {/* Content Outside Card */}
-                <div className="w-full flex flex-col items-center">
-                  {/* Product Name */}
-                  <h3 className="text-xl font-bold text-orange-600 mb-2 text-center">
-                    {product.name}
-                  </h3>
-
-                  {/* Rating - Dots */}
-                  <div className="flex items-center gap-1 mb-3">
-                    {[...Array(3)].map((_, i) => (
-                      <div
-                        key={i}
-                        className={`w-2 h-2 rounded-full ${
-                          i === 0 ? 'bg-orange-600' : 'bg-gray-300'
-                        }`}
-                      />
-                    ))}
-                  </div>
-
-                  {/* Price */}
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="text-2xl font-bold text-gray-800">
-                      {product.priceRange || `$${product.price.toLocaleString()}`}
-                    </span>
-                    {product.originalPrice && typeof product.originalPrice === 'number' && (
-                      <span className="text-lg text-gray-500 line-through">
-                        ${product.originalPrice.toLocaleString()}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Add to Cart Button */}
-                  <button
-                    onClick={() => handleAddToCart(product)}
-                    className="w-full bg-white text-orange-600 py-3 rounded-full font-bold hover:bg-gray-100 transition-colors shadow-lg"
+              {/* Regular Products */}
+              {products.map((product, index) => (
+                <Link key={product.id} to={`/producto/${product.id}`}>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="flex flex-col items-center cursor-pointer group"
                   >
-                    COMPRAR AHORA
-                  </button>
-                </div>
-              </motion.div>
-            </Link>
-            ))}
+                    {/* Card with Image Only */}
+                    <div className="relative w-full mb-4">
+                      {/* Badge */}
+                      {product.badge && (
+                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-full z-10">
+                          {product.badge}
+                        </div>
+                      )}
+
+                      {/* Product Image Card */}
+                      <div className="bg-white rounded-3xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300">
+                        <div className="flex items-center justify-center h-48">
+                          <span className="text-9xl">{product.image}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Content Outside Card */}
+                    <div className="w-full flex flex-col items-center">
+                      {/* Product Name */}
+                      <h3 className="text-xl font-bold text-orange-600 mb-2 text-center">
+                        {product.name}
+                      </h3>
+
+                      {/* Rating - Dots */}
+                      <div className="flex items-center gap-1 mb-3">
+                        {[...Array(3)].map((_, i) => (
+                          <div
+                            key={i}
+                            className={`w-2 h-2 rounded-full ${
+                              i === 0 ? 'bg-orange-600' : 'bg-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+
+                      {/* Price */}
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className="text-2xl font-bold text-gray-800">
+                          {product.priceRange || `$${product.price.toLocaleString()}`}
+                        </span>
+                        {product.originalPrice && typeof product.originalPrice === 'number' && (
+                          <span className="text-lg text-gray-500 line-through">
+                            ${product.originalPrice.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Add to Cart Button */}
+                      <button
+                        onClick={() => handleAddToCart(product)}
+                        className="w-full bg-white text-orange-600 py-3 rounded-full font-bold hover:bg-gray-100 transition-colors shadow-lg"
+                      >
+                        COMPRAR AHORA
+                      </button>
+                    </div>
+                  </motion.div>
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       </section>

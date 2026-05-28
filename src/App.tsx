@@ -1,12 +1,17 @@
-import { motion } from 'framer-motion';
-import { ShoppingCart, User, Star, ChevronDown } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ShoppingCart, User, Star, ChevronDown, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import CircularText from './CircularText';
 import CartSidebar from './CartSidebar';
+import { useCart } from './contexts/CartContext';
+import { useAuth } from './contexts/AuthContext';
 
 function App() {
+  const { user } = useAuth();
+  const { getTotalItems } = useCart();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
   return (
@@ -18,20 +23,35 @@ function App() {
           : 'bg-transparent'
       }`}>
         <div className="flex items-center justify-between max-w-full pl-6 pr-6 py-5">
-          {/* Left Side - Logo + Navigation */}
-          <div className="flex items-center gap-10">
+          {/* Left Side - Logo + Hamburger */}
+          <div className="flex items-center gap-4">
+            {/* Hamburger Menu Button - Mobile Only */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className={`lg:hidden p-2 rounded-full transition-colors ${
+                isMenuOpen
+                  ? 'hover:bg-gray-100'
+                  : 'hover:bg-white/20'
+              }`}
+            >
+              <Menu className={`w-6 h-6 ${isMenuOpen ? 'text-gray-700' : 'text-white'}`} />
+            </button>
+
             {/* Logo */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="text-4xl font-bold relative"
+              className="text-3xl md:text-4xl font-bold relative"
             >
               <span className={`transition-colors flex flex-col leading-none font-serif ${isMenuOpen ? 'text-amber-600' : 'text-white'}`}>
                 <span>AVICOLA</span>
                 <span>LAS PALMAS</span>
               </span>
             </motion.div>
+          </div>
 
+          {/* Center Navigation - Desktop Only */}
+          <div className="flex items-center gap-10">
             {/* Navigation */}
             <nav className="hidden lg:flex items-center gap-8">
               {/* Encuéntranos Button with Location Icon */}
@@ -130,18 +150,20 @@ function App() {
             </div>
 
             {/* User Icon */}
-            <Link to="/login">
+            <Link to={user ? "/dashboard" : "/login"}>
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 className={`p-2 rounded-full transition-colors ${
-                  isMenuOpen
+                  user
+                    ? 'bg-green-100 hover:bg-green-200'
+                    : isMenuOpen
                     ? 'hover:bg-gray-100'
                     : 'hover:bg-white/20'
                 }`}
               >
                 <User className={`w-6 h-6 transition-colors ${
-                  isMenuOpen ? 'text-gray-700' : 'text-white'
+                  user ? 'text-green-600' : isMenuOpen ? 'text-gray-700' : 'text-white'
                 }`} />
               </motion.button>
             </Link>
@@ -171,6 +193,90 @@ function App() {
           </motion.div>
         </div>
       </header>
+
+      {/* Mobile Menu Overlay */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ type: 'tween', duration: 0.3 }}
+            className="fixed inset-0 bg-white z-[70] lg:hidden overflow-y-auto"
+          >
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <div className="text-2xl font-bold text-amber-600 font-serif">
+                  <div className="flex flex-col leading-none">
+                    <span>AVICOLA</span>
+                    <span>LAS PALMAS</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                >
+                  <X className="w-6 h-6 text-gray-700" />
+                </button>
+              </div>
+
+              {/* Navigation Links */}
+              <nav className="p-6 space-y-4">
+                <Link
+                  to="/comprar"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block py-3 px-4 text-lg font-bold text-gray-700 hover:bg-amber-50 hover:text-amber-600 rounded-lg transition-colors"
+                >
+                  Nuestros productos
+                </Link>
+
+                <Link
+                  to="/granja"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block py-3 px-4 text-lg font-bold text-gray-700 hover:bg-amber-50 hover:text-amber-600 rounded-lg transition-colors"
+                >
+                  Nuestra Granja
+                </Link>
+
+                <Link
+                  to="/recetas"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block py-3 px-4 text-lg font-bold text-gray-700 hover:bg-amber-50 hover:text-amber-600 rounded-lg transition-colors"
+                >
+                  Recetas
+                </Link>
+
+                <Link
+                  to="/arma-tu-paquete"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block py-3 px-4 text-lg font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition-colors"
+                >
+                  ARMA TU PAQUETE
+                </Link>
+
+                <button className="w-full py-3 px-4 text-lg font-bold text-amber-600 border-2 border-amber-600 hover:bg-amber-50 rounded-lg transition-colors flex items-center justify-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Encuéntranos
+                </button>
+              </nav>
+
+              {/* User Section */}
+              <div className="border-t border-gray-200 p-6">
+                <Link
+                  to={user ? "/dashboard" : "/login"}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 py-3 px-4 text-lg font-semibold text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                >
+                  <User className={`w-6 h-6 ${user ? 'text-green-600' : 'text-gray-700'}`} />
+                  <span>{user ? 'Mi Cuenta' : 'Iniciar Sesión'}</span>
+                </Link>
+              </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Dropdown Menu */}
       {isMenuOpen && (

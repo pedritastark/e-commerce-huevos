@@ -136,11 +136,11 @@ function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                         <div className="flex items-center justify-between">
                           <div>
                             <span className="text-xs text-gray-500">
-                              ${item.price.toLocaleString()} c/u
+                              ${item.price.toLocaleString('es-CO')} c/u
                             </span>
                           </div>
                           <span className="text-base font-bold text-amber-600">
-                            ${(item.price * item.quantity).toLocaleString()}
+                            ${(item.price * item.quantity).toLocaleString('es-CO')}
                           </span>
                         </div>
                       </div>
@@ -159,7 +159,7 @@ function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                     TOTAL ({getTotalItems()} {getTotalItems() === 1 ? 'producto' : 'productos'})
                   </span>
                   <span className="text-2xl font-bold text-amber-600">
-                    ${getTotalPrice().toLocaleString()}
+                    ${getTotalPrice().toLocaleString('es-CO')}
                   </span>
                 </div>
 

@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ShoppingCart, User, ChevronDown, Star, Plus, Minus, Check } from 'lucide-react';
 import { useState } from 'react';
 import { useCart } from './contexts/CartContext';
+import { useAuth } from './contexts/AuthContext';
 import CartSidebar from './CartSidebar';
 
 // Product images carousel thumbnails
@@ -21,9 +22,9 @@ const productData: { [key: string]: any } = {
     name: 'Huevos al Por Mayor',
     subtitle: 'TORRE DE 10 CUBETAS - 30 HUEVOS CADA UNA',
     description: 'Tus huevos favoritos AVICOLA LAS PALMAS al mejor precio. Torre de 10 cubetas con 30 huevos cada una (300 huevos en total). Elige entre diferentes clasificaciones: Extra, Jumbo, AAA, AA, A y C. Perfectos para negocios, restaurantes o familias grandes. Frescura y calidad garantizada.',
-    price: 120,
-    originalPrice: 150,
-    subscriptionPrice: 96,
+    price: 170000,  // Precio base torre AAA
+    originalPrice: 220000,  // Precio Jumbo
+    subscriptionPrice: 95000,  // Precio torre C
     image: '📦',
     badge: 'AHORRO',
     hasVarieties: true,
@@ -82,14 +83,15 @@ const flavorsRetail = [
 function ProductDetail() {
   const { id } = useParams();
   const product = productData[id || '1'];
+  const { user } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedFlavor, setSelectedFlavor] = useState(1);
   const [purchaseType, setPurchaseType] = useState<'one-time' | 'subscribe'>('one-time');
-  const [quantity, setQuantity] = useState(2); // Mínimo 2 torres
+  const [quantity, setQuantity] = useState(5); // Mínimo 5 torres
   const [deliveryFrequency, setDeliveryFrequency] = useState('30');
-  const minQuantity = 2; // Cantidad mínima de torres
+  const minQuantity = 5; // Cantidad mínima de torres
   const { addItem, getTotalItems } = useCart();
 
   const handleAddToCart = () => {
@@ -119,8 +121,7 @@ function ProductDetail() {
   };
 
   const getCurrentSubscriptionPrice = () => {
-    const basePrice = getCurrentPrice();
-    return Math.round(basePrice * 0.95); // 5% discount
+    return getCurrentPrice(); // Sin descuento adicional
   };
 
   const currentPrice = getCurrentPrice();
@@ -218,13 +219,17 @@ function ProductDetail() {
             </div>
 
             {/* User Icon */}
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-            >
-              <User className="w-6 h-6 text-gray-700" />
-            </motion.button>
+            <Link to={user ? "/dashboard" : "/login"}>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className={`p-2 rounded-full transition-colors ${
+                  user ? 'bg-green-100 hover:bg-green-200' : 'hover:bg-gray-100'
+                }`}
+              >
+                <User className={`w-6 h-6 ${user ? 'text-green-600' : 'text-gray-700'}`} />
+              </motion.button>
+            </Link>
 
             {/* Cart Icon */}
             <motion.button
@@ -487,31 +492,27 @@ function ProductDetail() {
                             <div className="w-3 h-3 rounded-full bg-amber-600"></div>
                           )}
                         </div>
-                        <span className="font-bold text-amber-900">SUSCRÍBETE Y AHORRA (5%)</span>
+                        <span className="font-bold text-amber-900">SUSCRIPCIÓN (Entregas automáticas)</span>
                       </div>
                       <div className="text-right">
                         <div>
                           {quantity > 1 && (
                             <div className="text-sm text-gray-600 mb-1">
-                              <span className="line-through">${currentPrice.toLocaleString()}</span>
-                              {' '}${currentSubscriptionPrice.toLocaleString()} × {quantity} {product.unit}s
+                              ${currentPrice.toLocaleString()} × {quantity} {product.unit}s
                             </div>
                           )}
-                          {quantity === 1 && (
-                            <span className="text-gray-400 line-through text-sm mr-2">${currentPrice.toLocaleString()}</span>
-                          )}
-                          <span className="text-2xl font-bold text-amber-900">${(currentSubscriptionPrice * quantity).toLocaleString()}</span>
+                          <span className="text-2xl font-bold text-amber-900">${(currentPrice * quantity).toLocaleString()}</span>
                           {quantity > 1 && <span className="text-gray-600 text-sm ml-1">TOTAL</span>}
                           {quantity === 1 && <span className="text-gray-600 text-sm ml-1">/ {product.unit}</span>}
                         </div>
                         {product.hasVarieties && id === '1' && (
                           <div className="text-xs text-gray-500 mt-1">
-                            ${(currentSubscriptionPrice / 10).toLocaleString()}/cubeta · ${Math.round(currentSubscriptionPrice / 300).toLocaleString()}/huevo
+                            ${(currentPrice / 10).toLocaleString()}/cubeta · ${Math.round(currentPrice / 300).toLocaleString()}/huevo
                           </div>
                         )}
                         {product.hasVarieties && id === '3' && (
                           <div className="text-xs text-gray-500 mt-1">
-                            ${Math.round(currentSubscriptionPrice / 30).toLocaleString()}/huevo
+                            ${Math.round(currentPrice / 30).toLocaleString()}/huevo
                           </div>
                         )}
                       </div>
@@ -545,11 +546,11 @@ function ProductDetail() {
                           </div>
                           <div className="flex items-start gap-2">
                             <span className="text-amber-600 font-bold">✓</span>
-                            <span className="text-gray-700">Cambia sabores cuando quieras + Acceso VIP</span>
+                            <span className="text-gray-700">Cambia sabores cuando quieras</span>
                           </div>
                           <div className="flex items-start gap-2">
                             <span className="text-amber-600 font-bold">✓</span>
-                            <span className="text-gray-700">Ahorro del 5% + Ofertas exclusivas</span>
+                            <span className="text-gray-700">Ofertas exclusivas para suscriptores</span>
                           </div>
                           <div className="flex items-start gap-2">
                             <span className="text-amber-600 font-bold">✓</span>
@@ -562,33 +563,57 @@ function ProductDetail() {
                 </div>
 
                 {/* Quantity & Add to Cart */}
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="flex items-center gap-4">
-                    <span className="font-bold text-amber-900">CANTIDAD</span>
-                    <div className="flex items-center gap-3 bg-white rounded-full px-4 py-2 border-2 border-amber-600">
-                      <button
-                        onClick={() => setQuantity(Math.max(minQuantity, quantity - 1))}
-                        className="w-8 h-8 flex items-center justify-center hover:bg-amber-100 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={quantity <= minQuantity}
-                      >
-                        <Minus className="w-4 h-4 text-amber-900" />
-                      </button>
-                      <span className="text-xl font-bold text-amber-900 w-8 text-center">{quantity}</span>
-                      <button
-                        onClick={() => setQuantity(quantity + 1)}
-                        className="w-8 h-8 flex items-center justify-center hover:bg-amber-100 rounded-full transition-colors"
-                      >
-                        <Plus className="w-4 h-4 text-amber-900" />
-                      </button>
+                <div className="mb-6">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="flex items-center gap-4">
+                      <span className="font-bold text-amber-900">CANTIDAD</span>
+                      <div className="flex items-center gap-3 bg-white rounded-full px-4 py-2 border-2 border-amber-600">
+                        <button
+                          onClick={() => setQuantity(Math.max(minQuantity, quantity - 1))}
+                          className="w-8 h-8 flex items-center justify-center hover:bg-amber-100 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled={quantity <= minQuantity}
+                        >
+                          <Minus className="w-4 h-4 text-amber-900" />
+                        </button>
+                        <span className="text-xl font-bold text-amber-900 w-8 text-center">{quantity}</span>
+                        <button
+                          onClick={() => setQuantity(quantity + 1)}
+                          className="w-8 h-8 flex items-center justify-center hover:bg-amber-100 rounded-full transition-colors"
+                        >
+                          <Plus className="w-4 h-4 text-amber-900" />
+                        </button>
+                      </div>
                     </div>
+
+                    <button
+                      onClick={handleAddToCart}
+                      className="flex-1 bg-amber-600 text-white py-4 px-8 rounded-full font-bold text-lg hover:bg-amber-700 transition-colors shadow-xl"
+                    >
+                      AGREGAR AL CARRITO
+                    </button>
                   </div>
 
-                  <button
-                    onClick={handleAddToCart}
-                    className="flex-1 bg-amber-600 text-white py-4 px-8 rounded-full font-bold text-lg hover:bg-amber-700 transition-colors shadow-xl"
-                  >
-                    AGREGAR AL CARRITO
-                  </button>
+                  {/* Alert for small orders */}
+                  {id === '1' && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 flex items-start gap-3"
+                    >
+                      <div className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold text-sm">
+                        i
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm text-blue-900">
+                          <span className="font-bold">¿Necesitas menos torres?</span> Para pedidos de 2-4 torres,{' '}
+                          <Link to="/arma-tu-paquete" className="text-blue-600 hover:text-blue-700 underline font-bold">
+                            arma tu paquete aquí
+                          </Link>
+                          {' '}y obtén descuentos especiales.
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
                 </div>
 
                 {/* Guarantee */}

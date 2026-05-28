@@ -1,38 +1,105 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ShoppingCart, User, ChevronDown, Info } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useCart } from './contexts/CartContext';
+import { useAuth } from './contexts/AuthContext';
+import { supabase } from './lib/supabase';
+import CartSidebar from './CartSidebar';
 
-// Varieties for "Huevos por Cubeta"
-const cubetaVarieties = [
-  { id: 'jumbo', name: 'Jumbo', price: 25500, weight: 'Más de 78g', emoji: '🥚' },
-  { id: 'extra', name: 'Extra', price: 23000, weight: '70g a 77.9g', emoji: '🥚' },
-  { id: 'aaa', name: 'AAA', price: 19800, weight: '64g a 69.9g', emoji: '🥚' },
-  { id: 'aa', name: 'AA', price: 16500, weight: '60g a 63.9g', emoji: '🥚' },
-  { id: 'a', name: 'A', price: 14900, weight: '53g a 59.9g', emoji: '🥚' },
-  { id: 'b', name: 'B', price: 13000, weight: '46g a 52.9g', emoji: '🥚' },
-  { id: 'c', name: 'C', price: 11000, weight: 'Menos de 46g', emoji: '🥚' },
+// Varieties for "Torres" (10 cubetas = 300 huevos)
+const torreVarieties = [
+  { id: 'jumbo', name: 'Jumbo', price: 220000, weight: 'Más de 78g', emoji: '📦', description: 'Torre de 10 cubetas - 300 huevos' },
+  { id: 'extra', name: 'Extra', price: 200000, weight: '70g a 77.9g', emoji: '📦', description: 'Torre de 10 cubetas - 300 huevos' },
+  { id: 'aaa', name: 'AAA', price: 170000, weight: '64g a 69.9g', emoji: '📦', description: 'Torre de 10 cubetas - 300 huevos' },
+  { id: 'aa', name: 'AA', price: 135000, weight: '60g a 63.9g', emoji: '📦', description: 'Torre de 10 cubetas - 300 huevos' },
+  { id: 'a', name: 'A', price: 125000, weight: '53g a 59.9g', emoji: '📦', description: 'Torre de 10 cubetas - 300 huevos' },
+  { id: 'b', name: 'B', price: 113000, weight: '46g a 52.9g', emoji: '📦', description: 'Torre de 10 cubetas - 300 huevos' },
+  { id: 'c', name: 'C', price: 95000, weight: 'Menos de 46g', emoji: '📦', description: 'Torre de 10 cubetas - 300 huevos' },
 ];
 
 interface Product {
   id: string;
+  productId?: string; // UUID de Supabase
   name: string;
-  type: 'campesinos' | 'cubeta';
+  type: 'torre';
   variety?: string;
   price: number;
   emoji: string;
+  description?: string;
 }
 
 function BundleBuilder() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [bundleSize, setBundleSize] = useState(3);
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
   const [purchaseType, setPurchaseType] = useState<'one-time' | 'subscribe'>('subscribe');
   const [deliveryFrequency, setDeliveryFrequency] = useState('30');
+  const [productsFromDB, setProductsFromDB] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [currentSlotIndex, setCurrentSlotIndex] = useState<number | null>(null);
+  const { getTotalItems, addItem } = useCart();
+  const { user, logout } = useAuth();
+
+  // Cargar productos desde Supabase
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('category', 'torre')
+          .eq('active', true)
+          .order('price', { ascending: false });
+
+        if (error) throw error;
+        setProductsFromDB(data || []);
+      } catch (error) {
+        console.error('Error loading products:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProducts();
+  }, []);
+
+  const handleAddToCart = () => {
+    selectedProducts.forEach(product => {
+      addItem({
+        id: product.id,
+        productId: product.productId,
+        name: product.name,
+        description: product.description || '',
+        price: product.price,
+        image: product.emoji
+      });
+    });
+    setIsCartOpen(true);
+  };
 
   const addProduct = (product: Product) => {
     if (selectedProducts.length < bundleSize) {
-      setSelectedProducts([...selectedProducts, product]);
+      // Encontrar el productId real de la base de datos (case-insensitive)
+      const dbProduct = productsFromDB.find(p =>
+        p.classification?.toLowerCase() === product.variety?.toLowerCase()
+      );
+      const productWithId = {
+        ...product,
+        productId: dbProduct?.id
+      };
+
+      console.log('🔍 Buscando producto:', {
+        variety: product.variety,
+        found: !!dbProduct,
+        productId: dbProduct?.id,
+        classification: dbProduct?.classification
+      });
+
+      setSelectedProducts([...selectedProducts, productWithId]);
     }
   };
 
@@ -45,16 +112,13 @@ function BundleBuilder() {
   };
 
   const getBundleSavings = () => {
-    const total = getTotalPrice();
-    if (bundleSize === 3) return Math.round(total * 0.02); // 2%
-    if (bundleSize === 4) return Math.round(total * 0.05); // 5%
+    if (bundleSize === 3) return 10000; // $10,000 descuento
+    if (bundleSize === 4) return 15000; // $15,000 descuento
     return 0;
   };
 
   const basePrice = getTotalPrice() - getBundleSavings();
   const originalPrice = getTotalPrice();
-  const subscriptionPrice = Math.round(basePrice * 0.95); // 5% discount
-  const subscriptionOriginalPrice = originalPrice;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50">
@@ -138,23 +202,76 @@ function BundleBuilder() {
               </button>
             </div>
 
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-            >
-              <User className="w-6 h-6 text-gray-700" />
-            </motion.button>
+            <div className="relative">
+              <motion.button
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className={`p-2 rounded-full transition-colors ${
+                  user ? 'bg-green-100 hover:bg-green-200' : 'hover:bg-gray-100'
+                }`}
+              >
+                <User className={`w-6 h-6 ${user ? 'text-green-600' : 'text-gray-700'}`} />
+              </motion.button>
+
+              {/* User Dropdown Menu */}
+              {isUserMenuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50"
+                >
+                  {user ? (
+                    <>
+                      <div className="px-4 py-3 border-b border-gray-200">
+                        <p className="text-sm font-bold text-gray-900">Hola, {user.email?.split('@')[0]}</p>
+                        <p className="text-xs text-gray-600">{user.email}</p>
+                      </div>
+                      <Link to="/dashboard" onClick={() => setIsUserMenuOpen(false)}>
+                        <button className="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm text-gray-700">
+                          Mi Dashboard
+                        </button>
+                      </Link>
+                      <button
+                        onClick={() => {
+                          logout();
+                          setIsUserMenuOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm text-red-600"
+                      >
+                        Cerrar Sesión
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <Link to="/login" onClick={() => setIsUserMenuOpen(false)}>
+                        <button className="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm text-gray-700">
+                          Iniciar Sesión
+                        </button>
+                      </Link>
+                      <Link to="/register" onClick={() => setIsUserMenuOpen(false)}>
+                        <button className="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm text-gray-700">
+                          Registrarse
+                        </button>
+                      </Link>
+                    </>
+                  )}
+                </motion.div>
+              )}
+            </div>
 
             <motion.button
+              onClick={() => setIsCartOpen(true)}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               className="p-2 rounded-full hover:bg-gray-100 transition-colors relative"
             >
               <ShoppingCart className="w-6 h-6 text-gray-700" />
-              <span className="absolute -top-1 -right-1 text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold bg-amber-600 text-white">
-                0
-              </span>
+              {getTotalItems() > 0 && (
+                <span className="absolute -top-1 -right-1 text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold bg-amber-600 text-white">
+                  {getTotalItems()}
+                </span>
+              )}
             </motion.button>
           </motion.div>
         </div>
@@ -215,14 +332,14 @@ function BundleBuilder() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="grid lg:grid-cols-[1fr_500px] gap-8">
-          {/* Left Side - Best Sellers */}
-          <div>
-            <h2 className="text-4xl font-bold text-amber-900 mb-8">PRODUCTOS DESTACADOS</h2>
+          {/* Left Side - Best Sellers - Hidden on mobile */}
+          <div className="hidden lg:block">
+            <h2 className="text-4xl font-bold text-amber-900 mb-8">TORRES DISPONIBLES</h2>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 md:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-4">
 
-              {/* Huevos por Cubeta - Varieties */}
-              {cubetaVarieties.map((variety, index) => (
+              {/* Torres - Varieties */}
+              {torreVarieties.map((variety, index) => (
                 <motion.div
                   key={variety.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -236,18 +353,37 @@ function BundleBuilder() {
                       <div className="text-xs font-bold text-amber-900 mt-2">{variety.name}</div>
                     </div>
                   </div>
-                  <div className="flex items-center justify-center gap-1 mb-2">
-                    <h3 className="text-sm font-bold text-amber-900 text-center">HUEVOS {variety.name.toUpperCase()}</h3>
-                    <Info className="w-4 h-4 text-amber-900" />
+                  <div className="flex flex-col items-center gap-1 mb-2">
+                    <h3 className="text-sm font-bold text-amber-900 text-center">TORRE {variety.name.toUpperCase()}</h3>
+                    <p className="text-xs text-amber-800">10 cubetas - 300 huevos</p>
+
+                    {/* Precio por torre */}
+                    <div className="bg-white rounded-lg px-3 py-1 my-1">
+                      <p className="text-lg font-bold text-amber-900">${variety.price.toLocaleString()}</p>
+                      <p className="text-xs text-gray-600">Torre completa</p>
+                    </div>
+
+                    {/* Desglose de precios */}
+                    <div className="grid grid-cols-2 gap-2 w-full mt-1">
+                      <div className="bg-amber-50 rounded-lg px-2 py-1 text-center">
+                        <p className="text-xs font-bold text-amber-900">${(variety.price / 10).toLocaleString()}</p>
+                        <p className="text-[10px] text-gray-600">Por cubeta</p>
+                      </div>
+                      <div className="bg-amber-50 rounded-lg px-2 py-1 text-center">
+                        <p className="text-xs font-bold text-amber-900">${Math.round(variety.price / 300).toLocaleString()}</p>
+                        <p className="text-[10px] text-gray-600">Por huevo</p>
+                      </div>
+                    </div>
                   </div>
                   <button
                     onClick={() => addProduct({
-                      id: `cubeta-${variety.id}`,
-                      name: `Huevos ${variety.name}`,
-                      type: 'cubeta',
+                      id: `torre-${variety.id}`,
+                      name: `Torre ${variety.name}`,
+                      type: 'torre',
                       variety: variety.id,
                       price: variety.price,
-                      emoji: variety.emoji
+                      emoji: variety.emoji,
+                      description: variety.description
                     })}
                     disabled={selectedProducts.length >= bundleSize}
                     className="w-full bg-amber-900 text-white py-2 rounded-full font-bold text-sm hover:bg-amber-800 transition-colors disabled:bg-gray-400"
@@ -299,7 +435,7 @@ function BundleBuilder() {
                   >
                     3 TORRES
                     <span className="absolute -top-1.5 -right-1.5 text-xs px-1.5 py-0.5 rounded-full font-bold bg-yellow-300 text-amber-900">
-                      -2%
+                      -$10k
                     </span>
                   </button>
 
@@ -316,7 +452,7 @@ function BundleBuilder() {
                   >
                     4 TORRES
                     <span className="absolute -top-1.5 -right-1.5 text-xs px-1.5 py-0.5 rounded-full font-bold bg-yellow-300 text-amber-900">
-                      -5%
+                      -$15k
                     </span>
                   </button>
                 </div>
@@ -346,18 +482,25 @@ function BundleBuilder() {
                   {Array.from({ length: Math.min(bundleSize, 6) }).map((_, index) => (
                     <div
                       key={index}
-                      onClick={() => selectedProducts[index] && removeProduct(index)}
+                      onClick={() => {
+                        if (selectedProducts[index]) {
+                          removeProduct(index);
+                        } else {
+                          setCurrentSlotIndex(index);
+                          setIsProductModalOpen(true);
+                        }
+                      }}
                       className={`aspect-square border-3 border-dashed rounded-xl flex items-center justify-center cursor-pointer transition-all ${
                         selectedProducts[index]
                           ? 'border-amber-900 bg-white hover:bg-amber-50'
-                          : 'border-amber-300 bg-transparent'
+                          : 'border-amber-300 bg-transparent hover:border-amber-400 hover:bg-amber-50'
                       }`}
                     >
                       {selectedProducts[index] ? (
                         <div className="text-center">
                           <span className="text-3xl">{selectedProducts[index].emoji}</span>
                           <div className="text-xs font-bold text-amber-900 mt-0.5">
-                            {selectedProducts[index].type === 'campesinos' ? 'Campesinos' : selectedProducts[index].name.replace('Huevos ', '')}
+                            {selectedProducts[index].name.replace('Torre ', '')}
                           </div>
                         </div>
                       ) : (
@@ -383,7 +526,25 @@ function BundleBuilder() {
                   <h3 className="text-xl font-bold text-amber-900">Elige tu Frecuencia</h3>
                 </div>
 
-                {/* One-time Purchase */}
+                {/* Price Display */}
+                <div className="bg-white rounded-xl p-4 border-2 border-amber-900 mb-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-bold text-amber-900">Total:</span>
+                    <div className="text-right">
+                      <span className="text-2xl font-bold text-amber-900">${basePrice.toLocaleString()}</span>
+                      {getBundleSavings() > 0 && (
+                        <span className="text-sm text-gray-500 line-through ml-2">${originalPrice.toLocaleString()}</span>
+                      )}
+                    </div>
+                  </div>
+                  {getBundleSavings() > 0 && (
+                    <p className="text-xs text-green-600 font-semibold text-right">
+                      ¡Ahorraste ${getBundleSavings().toLocaleString()}!
+                    </p>
+                  )}
+                </div>
+
+                {/* Frequency Options */}
                 <div
                   onClick={() => setPurchaseType('one-time')}
                   className={`p-3 rounded-xl border-2 mb-2 cursor-pointer transition-all ${
@@ -392,27 +553,19 @@ function BundleBuilder() {
                       : 'border-transparent bg-white/50'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                        purchaseType === 'one-time' ? 'border-amber-900' : 'border-gray-400'
-                      }`}>
-                        {purchaseType === 'one-time' && (
-                          <div className="w-2 h-2 rounded-full bg-amber-900"></div>
-                        )}
-                      </div>
-                      <span className="font-bold text-amber-900 text-sm">COMPRA ÚNICA</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-lg font-bold text-amber-900">${basePrice.toLocaleString()}</span>
-                      {getBundleSavings() > 0 && (
-                        <span className="text-xs text-gray-500 line-through ml-1">${originalPrice.toLocaleString()}</span>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                      purchaseType === 'one-time' ? 'border-amber-900' : 'border-gray-400'
+                    }`}>
+                      {purchaseType === 'one-time' && (
+                        <div className="w-2 h-2 rounded-full bg-amber-900"></div>
                       )}
                     </div>
+                    <span className="font-bold text-amber-900 text-sm">COMPRA ÚNICA</span>
                   </div>
                 </div>
 
-                {/* Subscribe & Save */}
+                {/* Subscribe Option */}
                 <div
                   onClick={() => setPurchaseType('subscribe')}
                   className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${
@@ -421,22 +574,15 @@ function BundleBuilder() {
                       : 'border-transparent bg-white/50'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                        purchaseType === 'subscribe' ? 'border-amber-900' : 'border-gray-400'
-                      }`}>
-                        {purchaseType === 'subscribe' && (
-                          <div className="w-2 h-2 rounded-full bg-amber-900"></div>
-                        )}
-                      </div>
-                      <span className="font-bold text-amber-900 text-sm">SUSCRÍBETE Y AHORRA (5%)</span>
-                      <Info className="w-3 h-3 text-amber-900" />
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                      purchaseType === 'subscribe' ? 'border-amber-900' : 'border-gray-400'
+                    }`}>
+                      {purchaseType === 'subscribe' && (
+                        <div className="w-2 h-2 rounded-full bg-amber-900"></div>
+                      )}
                     </div>
-                    <div className="text-right">
-                      <span className="text-lg font-bold text-amber-900">${subscriptionPrice.toLocaleString()}</span>
-                      <span className="text-xs text-gray-500 line-through ml-1">${subscriptionOriginalPrice.toLocaleString()}</span>
-                    </div>
+                    <span className="font-bold text-amber-900 text-sm">SUSCRIPCIÓN (Entregas automáticas)</span>
                   </div>
 
                   {purchaseType === 'subscribe' && (
@@ -457,12 +603,13 @@ function BundleBuilder() {
 
               {/* Add to Cart Button */}
               <button
+                onClick={handleAddToCart}
                 disabled={selectedProducts.length !== bundleSize}
                 className="w-full bg-amber-900 text-white py-3 rounded-full font-bold text-base hover:bg-amber-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed shadow-xl mb-3"
               >
                 {selectedProducts.length < bundleSize
                   ? `AGREGA ${bundleSize - selectedProducts.length} MÁS`
-                  : `AGREGAR AL CARRITO - $${(purchaseType === 'subscribe' ? subscriptionPrice : basePrice).toLocaleString()}`
+                  : `AGREGAR AL CARRITO - $${basePrice.toLocaleString()}`
                 }
               </button>
 
@@ -558,6 +705,85 @@ function BundleBuilder() {
           </div>
         </div>
       </footer>
+
+      {/* Product Selection Modal */}
+      {isProductModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setIsProductModalOpen(false)}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-amber-900">Elige tu Torre</h2>
+              <button
+                onClick={() => setIsProductModalOpen(false)}
+                className="text-gray-500 hover:text-gray-700 text-3xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {torreVarieties.map((variety) => (
+                <motion.div
+                  key={variety.id}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    const newProduct: Product = {
+                      id: `torre-${variety.id}`,
+                      name: `Torre ${variety.name}`,
+                      type: 'torre',
+                      variety: variety.id,
+                      price: variety.price,
+                      emoji: variety.emoji,
+                      description: variety.description
+                    };
+
+                    // Find productId from Supabase
+                    const dbProduct = productsFromDB.find(p =>
+                      p.classification?.toLowerCase() === variety.id.toLowerCase()
+                    );
+                    if (dbProduct) {
+                      newProduct.productId = dbProduct.id;
+                    }
+
+                    // Add or replace product at current slot
+                    const newProducts = [...selectedProducts];
+                    if (currentSlotIndex !== null) {
+                      newProducts[currentSlotIndex] = newProduct;
+                      setSelectedProducts(newProducts);
+                    }
+
+                    setIsProductModalOpen(false);
+                    setCurrentSlotIndex(null);
+                  }}
+                  className="bg-amber-100 rounded-2xl p-4 border-2 border-amber-900 cursor-pointer hover:bg-amber-200 transition-all"
+                >
+                  <div className="bg-white rounded-xl mb-3 aspect-square flex items-center justify-center">
+                    <span className="text-5xl">{variety.emoji}</span>
+                  </div>
+                  <h3 className="text-sm font-bold text-amber-900 text-center mb-1">
+                    {variety.name}
+                  </h3>
+                  <p className="text-xs text-amber-800 text-center mb-2">{variety.weight}</p>
+                  <div className="bg-white rounded-lg px-2 py-1">
+                    <p className="text-lg font-bold text-amber-900 text-center">
+                      ${variety.price.toLocaleString()}
+                    </p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Cart Sidebar */}
+      <CartSidebar isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </div>
   );
 }

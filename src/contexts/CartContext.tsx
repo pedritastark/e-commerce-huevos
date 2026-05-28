@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 
 export interface CartItem {
   id: string;
+  productId?: string; // UUID de la tabla products en Supabase
   name: string;
   description: string;
   price: number;

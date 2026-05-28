@@ -1,28 +1,44 @@
 import { motion } from 'framer-motion';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
-import { ShoppingCart, User, ChevronDown } from 'lucide-react';
+import { ShoppingCart, User, ChevronDown, Mail, CheckCircle, RefreshCw } from 'lucide-react';
 import CartSidebar from './CartSidebar';
+import { supabase } from './lib/supabase';
+import { useCart } from './contexts/CartContext';
+import { useAuth } from './contexts/AuthContext';
 
 function VerifyEmail() {
-  const [code, setCode] = useState('');
+  const { user } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isVerified, setIsVerified] = useState(false);
-  const navigate = useNavigate();
+  const { getTotalItems } = useCart();
+  const [resending, setResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
   const location = useLocation();
   const email = location.state?.email || '';
 
-  const handleVerify = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Verify code:', code);
-    // Show success message
-    setIsVerified(true);
-    // Redirect to login after 2 seconds
-    setTimeout(() => {
-      navigate('/login');
-    }, 2000);
+  const handleResendEmail = async () => {
+    setResending(true);
+    setResendMessage('');
+
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+      });
+
+      if (error) {
+        setResendMessage('Error al reenviar el email. Intenta de nuevo.');
+      } else {
+        setResendMessage('¡Email reenviado! Revisa tu bandeja de entrada.');
+      }
+    } catch (error) {
+      setResendMessage('Error al reenviar el email. Intenta de nuevo.');
+    } finally {
+      setResending(false);
+    }
   };
+
 
   return (
     <div className="min-h-screen bg-white">
@@ -116,13 +132,13 @@ function VerifyEmail() {
             </div>
 
             {/* User Icon */}
-            <Link to="/login">
+            <Link to={user ? "/dashboard" : "/login"}>
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                className={`p-2 rounded-full transition-colors ${user ? 'bg-green-100 hover:bg-green-200' : 'hover:bg-gray-100'}`}
               >
-                <User className="w-6 h-6 text-gray-700" />
+                <User className={`w-6 h-6 ${user ? 'text-green-600' : 'text-gray-700'}`} />
               </motion.button>
             </Link>
 
@@ -135,7 +151,7 @@ function VerifyEmail() {
             >
               <ShoppingCart className="w-6 h-6 text-gray-700" />
               <span className="absolute -top-1 -right-1 text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold bg-red-600 text-white">
-                0
+                {getTotalItems()}
               </span>
             </motion.button>
           </motion.div>
@@ -196,94 +212,126 @@ function VerifyEmail() {
 
       {/* Verification Content */}
       <div className="flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-2xl">
-          {!isVerified ? (
-            <>
-              {/* Title */}
-              <motion.h1
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-4xl font-bold text-red-600 text-center mb-4"
-              >
-                Verificar Correo
-              </motion.h1>
+        <div className="w-full max-w-3xl">
+          {/* Icon */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex justify-center mb-6"
+          >
+            <div className="bg-red-100 rounded-full p-6">
+              <Mail className="w-16 h-16 text-red-600" />
+            </div>
+          </motion.div>
 
-              {/* Subtitle */}
-              <motion.p
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="text-center text-gray-600 mb-8"
-              >
-                Hemos enviado un código de verificación a <span className="font-bold">{email}</span>
-              </motion.p>
+          {/* Title */}
+          <motion.h1
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-4xl font-bold text-red-600 text-center mb-4"
+          >
+            Revisa tu Correo Electrónico
+          </motion.h1>
 
-              {/* Verification Form */}
-              <form onSubmit={handleVerify}>
-                {/* Code Field */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="mb-6"
-                >
-                  <label className="block text-red-600 font-bold text-sm mb-2">
-                    CÓDIGO DE VERIFICACIÓN
-                  </label>
-                  <input
-                    type="text"
-                    value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                    className="w-full px-4 py-3 border-2 border-red-600 rounded-full focus:outline-none focus:border-red-700 transition-colors text-sm text-center tracking-widest"
-                    placeholder="000000"
-                    required
-                    maxLength={6}
-                  />
-                </motion.div>
+          {/* Email Display */}
+          <motion.p
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-center text-gray-600 mb-8"
+          >
+            Hemos enviado un enlace de verificación a
+            <br />
+            <span className="font-bold text-red-600 text-lg">{email}</span>
+          </motion.p>
 
-                {/* Verify Button */}
-                <motion.button
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  type="submit"
-                  className="w-full bg-red-600 text-white py-3 rounded-full font-bold text-sm hover:bg-red-700 transition-colors mb-3"
-                >
-                  VERIFICAR
-                </motion.button>
+          {/* Instructions Box */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-gray-50 rounded-2xl p-8 mb-8"
+          >
+            <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <CheckCircle className="w-6 h-6 text-green-600" />
+              Próximos Pasos
+            </h3>
+            <ol className="space-y-4 text-gray-700">
+              <li className="flex gap-3">
+                <span className="font-bold text-red-600 flex-shrink-0">1.</span>
+                <span>Abre tu bandeja de entrada de correo electrónico</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="font-bold text-red-600 flex-shrink-0">2.</span>
+                <span>Busca el email de <strong>Avícola Las Palmas</strong> (remitente: noreply@mail.app.supabase.io)</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="font-bold text-red-600 flex-shrink-0">3.</span>
+                <span>Haz click en el <strong>enlace de confirmación</strong></span>
+              </li>
+              <li className="flex gap-3">
+                <span className="font-bold text-red-600 flex-shrink-0">4.</span>
+                <span>Una vez confirmado, podrás <strong>iniciar sesión</strong></span>
+              </li>
+            </ol>
 
-                {/* Resend Code Link */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.4 }}
-                  className="text-center"
-                >
-                  <button
-                    type="button"
-                    className="text-red-600 font-bold text-sm hover:text-red-700 transition-colors underline"
-                  >
-                    REENVIAR CÓDIGO
-                  </button>
-                </motion.div>
-              </form>
-            </>
-          ) : (
-            // Success Message
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center"
-            >
-              <div className="text-8xl mb-6">✅</div>
-              <h1 className="text-4xl font-bold text-red-600 mb-4">
-                Cuenta Registrada
-              </h1>
-              <p className="text-gray-600 mb-6">
-                Tu cuenta ha sido verificada exitosamente. Serás redirigido al inicio de sesión...
+            <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-800">
+                <strong>💡 Consejo:</strong> Si no ves el email, revisa tu carpeta de spam o correo no deseado.
               </p>
+            </div>
+          </motion.div>
+
+          {/* Resend Email Message */}
+          {resendMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`mb-4 p-3 rounded-lg text-sm text-center ${
+                resendMessage.includes('Error')
+                  ? 'bg-red-100 border border-red-400 text-red-700'
+                  : 'bg-green-100 border border-green-400 text-green-700'
+              }`}
+            >
+              {resendMessage}
             </motion.div>
           )}
+
+          {/* Actions */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="flex flex-col sm:flex-row gap-4 justify-center"
+          >
+            {/* Resend Email Button */}
+            <button
+              onClick={handleResendEmail}
+              disabled={resending}
+              className="flex items-center justify-center gap-2 px-6 py-3 border-2 border-red-600 text-red-600 rounded-full font-bold text-sm hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <RefreshCw className={`w-5 h-5 ${resending ? 'animate-spin' : ''}`} />
+              {resending ? 'Reenviando...' : 'Reenviar Email'}
+            </button>
+
+            {/* Go to Login */}
+            <Link to="/login">
+              <button className="w-full sm:w-auto px-6 py-3 bg-red-600 text-white rounded-full font-bold text-sm hover:bg-red-700 transition-colors">
+                Ir a Iniciar Sesión
+              </button>
+            </Link>
+          </motion.div>
+
+          {/* Help Text */}
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="text-center text-gray-500 text-sm mt-8"
+          >
+            ¿Ya verificaste tu email? <Link to="/login" className="text-red-600 font-bold hover:underline">Inicia sesión aquí</Link>
+          </motion.p>
         </div>
       </div>
 

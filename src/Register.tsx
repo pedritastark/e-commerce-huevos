@@ -3,6 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { ShoppingCart, User, ChevronDown } from 'lucide-react';
 import CartSidebar from './CartSidebar';
+import { useCart } from './contexts/CartContext';
+import { useAuth } from './contexts/AuthContext';
+import { supabase } from './lib/supabase';
 
 function Register() {
   const [nombre, setNombre] = useState('');
@@ -11,13 +14,59 @@ function Register() {
   const [password, setPassword] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { register, user } = useAuth();
+  const { getTotalItems } = useCart();
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Register:', { nombre, apellido, email, password });
-    // Navigate to verification page
-    navigate('/verify-email', { state: { email } });
+    setError('');
+    setLoading(true);
+
+    try {
+      // Registrar usuario
+      const result = await register(email, password);
+
+      if (result.error) {
+        setError(result.error);
+        setLoading(false);
+        return;
+      }
+
+      // Obtener el ID del usuario recién creado
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        // Guardar nombre completo en el perfil usando upsert para asegurar que se cree/actualice
+        const fullName = `${nombre} ${apellido}`.trim();
+
+        console.log('Saving profile for user:', user.id, 'Name:', fullName);
+
+        // Esperar un momento para que el trigger cree el perfil
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: user.id,
+            full_name: fullName
+          });
+
+        if (profileError) {
+          console.error('Error saving profile:', profileError);
+        } else {
+          console.log('Profile saved successfully!');
+        }
+      }
+
+      // Navigate to verification page
+      navigate('/verify-email', { state: { email } });
+    } catch (error) {
+      setError('Error al crear la cuenta. Intenta de nuevo.');
+      setLoading(false);
+    }
   };
 
   return (
@@ -112,13 +161,15 @@ function Register() {
             </div>
 
             {/* User Icon */}
-            <Link to="/login">
+            <Link to={user ? "/dashboard" : "/login"}>
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                className={`p-2 rounded-full transition-colors ${
+                  user ? 'bg-green-100 hover:bg-green-200' : 'hover:bg-gray-100'
+                }`}
               >
-                <User className="w-6 h-6 text-gray-700" />
+                <User className={`w-6 h-6 ${user ? 'text-green-600' : 'text-gray-700'}`} />
               </motion.button>
             </Link>
 
@@ -286,15 +337,27 @@ function Register() {
               </motion.div>
             </div>
 
+            {/* Error Message */}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm"
+              >
+                {error}
+              </motion.div>
+            )}
+
             {/* Create Account Button */}
             <motion.button
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
               type="submit"
-              className="w-full bg-red-600 text-white py-3 rounded-full font-bold text-sm hover:bg-red-700 transition-colors mb-3"
+              disabled={loading}
+              className="w-full bg-red-600 text-white py-3 rounded-full font-bold text-sm hover:bg-red-700 transition-colors mb-3 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              CREAR CUENTA
+              {loading ? 'CREANDO CUENTA...' : 'CREAR CUENTA'}
             </motion.button>
 
             {/* Back to Login Link */}

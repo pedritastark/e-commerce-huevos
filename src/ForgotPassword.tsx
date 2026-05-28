@@ -2,19 +2,43 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { ShoppingCart, User, ChevronDown, ArrowLeft } from 'lucide-react';
+import toast from 'react-hot-toast';
 import CartSidebar from './CartSidebar';
+import { useCart } from './contexts/CartContext';
+import { useAuth } from './contexts/AuthContext';
+import { supabase } from './lib/supabase';
 
 function ForgotPassword() {
+  const { user } = useAuth();
+  const { getTotalItems } = useCart();
   const [email, setEmail] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Recuperar contraseña para:', email);
-    // Aquí iría la lógica para enviar el email de recuperación
-    setEmailSent(true);
+    setError('');
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) throw error;
+
+      setEmailSent(true);
+      toast.success('Email de recuperación enviado. Revisa tu correo.');
+    } catch (error: any) {
+      console.error('Error sending reset email:', error);
+      setError(error.message || 'Error al enviar el email de recuperación');
+      toast.error('Error al enviar el email. Verifica tu correo e intenta de nuevo.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -109,13 +133,13 @@ function ForgotPassword() {
             </div>
 
             {/* User Icon */}
-            <Link to="/login">
+            <Link to={user ? "/dashboard" : "/login"}>
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                className={`p-2 rounded-full transition-colors ${user ? 'bg-green-100 hover:bg-green-200' : 'hover:bg-gray-100'}`}
               >
-                <User className="w-6 h-6 text-gray-700" />
+                <User className={`w-6 h-6 ${user ? 'text-green-600' : 'text-gray-700'}`} />
               </motion.button>
             </Link>
 
@@ -244,15 +268,37 @@ function ForgotPassword() {
                   />
                 </motion.div>
 
+                {/* Error Message */}
+                {error && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-red-600 text-sm">{error}</p>
+                  </div>
+                )}
+
                 {/* Submit Button */}
                 <motion.button
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
                   type="submit"
-                  className="w-full bg-amber-600 text-white py-3 rounded-full font-bold text-sm hover:bg-amber-700 transition-colors"
+                  disabled={loading}
+                  className={`w-full py-3 rounded-full font-bold text-sm transition-colors flex items-center justify-center gap-2 ${
+                    loading
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-amber-600 text-white hover:bg-amber-700'
+                  }`}
                 >
-                  ENVIAR ENLACE DE RECUPERACIÓN
+                  {loading ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      ENVIANDO...
+                    </>
+                  ) : (
+                    'ENVIAR ENLACE DE RECUPERACIÓN'
+                  )}
                 </motion.button>
               </form>
             </>

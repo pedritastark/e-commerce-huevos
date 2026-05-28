@@ -2,16 +2,21 @@ import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { ShoppingCart, User, ChevronDown, Truck, Tag, Wallet } from 'lucide-react';
+import toast from 'react-hot-toast';
 import CartSidebar from './CartSidebar';
 import { useCart } from './contexts/CartContext';
 import { useAuth } from './contexts/AuthContext';
+import { supabase } from './lib/supabase';
 
 function Checkout() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [orderSuccess, setOrderSuccess] = useState(false);
+  const [orderId, setOrderId] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const { items, getTotalPrice, clearCart } = useCart();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, loading: authLoading } = useAuth();
 
   // Redirigir si el carrito está vacío
   useEffect(() => {
@@ -19,6 +24,59 @@ function Checkout() {
       navigate('/comprar');
     }
   }, [items.length, navigate]);
+
+  // Cargar perfil del usuario para auto-completar formulario
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      // Esperar a que termine de cargar la autenticación
+      if (authLoading) return;
+
+      // Si no hay usuario, no hacer nada
+      if (!user) {
+        console.log('No user logged in');
+        return;
+      }
+
+      console.log('Loading profile for user:', user.id);
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name, phone, address, city')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Error loading profile:', error);
+          return;
+        }
+
+        if (data) {
+          console.log('Profile loaded:', data);
+          if (data.full_name) {
+            console.log('Setting fullName to:', data.full_name);
+            setFullName(data.full_name);
+          } else {
+            console.log('No full_name in profile');
+          }
+          if (data.phone) {
+            console.log('Setting phone to:', data.phone);
+            setPhone(data.phone);
+          }
+          if (data.address) {
+            console.log('Setting address to:', data.address);
+            setAddress(data.address);
+          }
+        } else {
+          console.log('No profile data found');
+        }
+      } catch (error) {
+        console.error('Error loading profile:', error);
+      }
+    };
+
+    loadUserProfile();
+  }, [user, authLoading]);
 
   // Shipping form
   const [fullName, setFullName] = useState('');
@@ -57,46 +115,150 @@ function Checkout() {
     }
   };
 
-  const handleConfirmOrder = (e: React.FormEvent) => {
+  const handleConfirmOrder = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Crear el pedido
-    const newOrder = {
-      id: `ORD-${Date.now()}`,
-      date: new Date().toISOString().split('T')[0],
-      total: total,
-      status: 'Pendiente',
-      statusColor: 'bg-yellow-500',
-      items: items.map(item => ({
-        name: item.name,
-        description: item.description,
-        quantity: item.quantity,
-        unit: 'cubeta',
-        eggsPerUnit: 30,
-        pricePerUnit: item.price,
-        price: item.price * item.quantity,
-        image: item.image
-      })),
-      address: `${address}, ${city}, ${state}`,
-      paymentMethod: paymentMethod === 'cash' ? 'Efectivo' : 'Transferencia',
-    };
+    // Prevenir doble clic
+    if (isSubmitting) {
+      console.log('⚠️  Ya se está procesando un pedido...');
+      return;
+    }
 
-    // En producción, aquí enviarías el pedido al backend
-    console.log('Order confirmed:', newOrder);
+    console.log('🚀 Iniciando creación de pedido...');
+    console.log('👤 Usuario:', user?.id, user?.email);
 
-    // Guardar el pedido en localStorage (temporal)
-    const savedOrders = JSON.parse(localStorage.getItem('orders') || '[]');
-    savedOrders.push(newOrder);
-    localStorage.setItem('orders', JSON.stringify(savedOrders));
-
-    // Limpiar el carrito
-    clearCart();
-
-    // Redirigir al dashboard para ver el pedido
-    if (isAuthenticated) {
-      navigate('/dashboard');
-    } else {
+    if (!user) {
+      toast.error('Debes iniciar sesión para realizar un pedido');
       navigate('/login');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const orderNumber = `ORD-${Date.now()}`;
+      const subtotalValue = getTotalPrice();
+
+      console.log('📝 Datos del pedido:', {
+        user_id: user.id,
+        order_number: orderNumber,
+        total: subtotalValue,
+        customer_name: fullName,
+        items_count: items.length
+      });
+
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          user_id: user.id,
+          order_number: orderNumber,
+          status: 'pendiente',
+          subtotal: subtotalValue,
+          discount: 0,
+          shipping: 0,
+          total: subtotalValue,
+          payment_method: paymentMethod === 'cash' ? 'efectivo' : 'transferencia',
+          delivery_address: address,
+          delivery_city: city,
+          delivery_state: state,
+          customer_name: fullName,
+          customer_phone: phone,
+          notes: null
+        })
+        .select()
+        .single();
+
+      if (orderError) {
+        console.error('❌ Error creating order:', orderError);
+        toast.error(`Error al crear el pedido: ${orderError.message}`);
+        return;
+      }
+
+      console.log('✅ Orden creada:', order);
+
+      const orderItems = items.map(item => ({
+        order_id: order.id,
+        product_id: item.productId || null,
+        product_name: item.name,
+        product_description: item.description,
+        quantity: item.quantity,
+        price_per_unit: item.price,
+        total: item.price * item.quantity
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems);
+
+      if (itemsError) {
+        console.error('Error creating order items:', itemsError);
+        toast.error('Error al guardar los items del pedido.');
+        return;
+      }
+
+      // Enviar email de confirmación
+      let emailSent = false;
+      try {
+        const { data, error: emailError } = await supabase.functions.invoke('send-order-confirmation', {
+          body: {
+            orderNumber: orderNumber,
+            customerEmail: user.email,
+            customerName: fullName,
+            total: subtotalValue,
+            items: items.map(item => ({
+              name: item.name,
+              quantity: item.quantity,
+              total: item.price * item.quantity
+            }))
+          }
+        });
+
+        if (emailError) {
+          console.warn('⚠️  Email no enviado (función no desplegada):', emailError.message);
+        } else {
+          console.log('✅ Email enviado:', data);
+          emailSent = true;
+        }
+      } catch (emailError: any) {
+        console.warn('⚠️  Email no enviado:', emailError?.message || emailError);
+        // No mostramos error al usuario, el pedido ya se creó correctamente
+      }
+
+      // Marcar si el email fue enviado
+      if (emailSent) {
+        await supabase
+          .from('orders')
+          .update({
+            email_sent: true,
+            email_sent_at: new Date().toISOString()
+          })
+          .eq('id', order.id);
+      }
+
+      setOrderId(orderNumber);
+      clearCart();
+      setOrderSuccess(true);
+
+      // Mostrar toast de éxito
+      toast.success(
+        `🎉 ¡Pedido confirmado! Tu número de orden es ${orderNumber}. Recibirás un email de confirmación pronto.`,
+        {
+          duration: 6000,
+          style: {
+            maxWidth: '500px',
+          },
+        }
+      );
+
+      // Redirigir al dashboard después de 2 segundos
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 2000);
+    } catch (error) {
+      console.error('Error confirming order:', error);
+      toast.error('Error al confirmar el pedido. Por favor intenta de nuevo.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -192,13 +354,15 @@ function Checkout() {
             </div>
 
             {/* User Icon */}
-            <Link to="/login">
+            <Link to={user ? "/dashboard" : "/login"}>
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                className={`p-2 rounded-full transition-colors ${
+                  user ? 'bg-green-100 hover:bg-green-200' : 'hover:bg-gray-100'
+                }`}
               >
-                <User className="w-6 h-6 text-gray-700" />
+                <User className={`w-6 h-6 ${user ? 'text-green-600' : 'text-gray-700'}`} />
               </motion.button>
             </Link>
 
@@ -319,8 +483,10 @@ function Checkout() {
                       type="text"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-red-600 transition-colors text-sm"
+                      className="w-full px-4 py-3 border-2 border-gray-300 bg-gray-100 rounded-xl text-sm text-gray-700 cursor-not-allowed"
                       placeholder="Juan Pérez"
+                      disabled
+                      readOnly
                       required
                     />
                   </div>
@@ -549,12 +715,29 @@ function Checkout() {
                 {/* Confirm Button */}
                 <button
                   type="submit"
-                  className="w-full mt-6 bg-red-600 text-white py-4 rounded-xl font-bold text-base hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+                  disabled={isSubmitting}
+                  className={`w-full mt-6 py-4 rounded-xl font-bold text-base transition-colors flex items-center justify-center gap-2 ${
+                    isSubmitting
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-red-600 text-white hover:bg-red-700'
+                  }`}
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                  CONFIRMAR COMPRA
+                  {isSubmitting ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      PROCESANDO...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      CONFIRMAR COMPRA
+                    </>
+                  )}
                 </button>
 
                 <p className="text-xs text-gray-500 text-center mt-3">

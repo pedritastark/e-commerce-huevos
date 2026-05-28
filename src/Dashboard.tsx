@@ -1,70 +1,164 @@
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, LogOut, Package } from 'lucide-react';
+import { User, LogOut, Package, Edit3, Save, X } from 'lucide-react';
 import { useAuth } from './contexts/AuthContext';
 import { useState, useEffect } from 'react';
+import { supabase } from './lib/supabase';
+import toast from 'react-hot-toast';
+import type { Order } from './lib/supabase';
 
-// Mock orders data - En producción vendría del backend
-const defaultOrders = [
-  {
-    id: 'ORD-001',
-    date: '2026-05-25',
-    total: 95000,
-    status: 'Entregado',
-    statusColor: 'bg-green-500',
-    items: [
-      { name: 'Huevos al Por Mayor', quantity: 1, price: 95000 }
-    ],
-    address: 'Calle 123 #45-67, Bogotá, Colombia',
-    paymentMethod: 'Tarjeta de crédito ****1234'
-  },
-  {
-    id: 'ORD-002',
-    date: '2026-05-20',
-    total: 50000,
-    status: 'Enviado',
-    statusColor: 'bg-blue-500',
-    items: [
-      { name: 'Huevos Campesinos', quantity: 1, price: 39000 },
-      { name: 'Huevos por Cubeta', quantity: 1, price: 11000 }
-    ],
-    address: 'Carrera 7 #10-20, Bogotá, Colombia',
-    paymentMethod: 'Tarjeta de crédito ****1234',
-    trackingNumber: 'TRK123456789'
-  },
-  {
-    id: 'ORD-003',
-    date: '2026-05-15',
-    total: 39000,
-    status: 'Pendiente',
-    statusColor: 'bg-yellow-500',
-    items: [
-      { name: 'Huevos Campesinos', quantity: 1, price: 39000 }
-    ],
-    address: 'Avenida 68 #25-30, Bogotá, Colombia',
-    paymentMethod: 'PSE'
-  }
-];
+// Helper function to map status to display format
+const getStatusDisplay = (status: Order['status']) => {
+  const statusMap = {
+    pendiente: { label: 'Pendiente', color: 'bg-yellow-500' },
+    confirmado: { label: 'Confirmado', color: 'bg-blue-500' },
+    en_camino: { label: 'En Camino', color: 'bg-purple-500' },
+    entregado: { label: 'Entregado', color: 'bg-green-500' },
+    cancelado: { label: 'Cancelado', color: 'bg-red-500' }
+  };
+  return statusMap[status] || { label: 'Desconocido', color: 'bg-gray-500' };
+};
 
 function Dashboard() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const [orders, setOrders] = useState(defaultOrders);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'orders' | 'profile'>('orders');
 
-  const userName = user?.name || 'Usuario';
+  // Profile states
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileData, setProfileData] = useState({
+    full_name: '',
+    phone: '',
+    address: '',
+    city: '',
+    state: 'Cundinamarca'
+  });
+  const [originalProfileData, setOriginalProfileData] = useState({...profileData});
 
-  // Cargar pedidos del localStorage
+  const userName = user?.email || 'Usuario';
+
+  // Cargar perfil del usuario
   useEffect(() => {
-    const savedOrders = JSON.parse(localStorage.getItem('orders') || '[]');
-    if (savedOrders.length > 0) {
-      // Combinar pedidos guardados con los de ejemplo
-      setOrders([...savedOrders.reverse(), ...defaultOrders]);
-    }
-  }, []);
+    const loadProfile = async () => {
+      if (!user) return;
 
-  const handleLogout = () => {
-    logout();
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name, phone, address, city, state')
+          .eq('id', user.id)
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          const profile = {
+            full_name: data.full_name || '',
+            phone: data.phone || '',
+            address: data.address || '',
+            city: data.city || '',
+            state: data.state || 'Cundinamarca'
+          };
+          setProfileData(profile);
+          setOriginalProfileData(profile);
+        }
+      } catch (error) {
+        console.error('Error loading profile:', error);
+      }
+    };
+
+    loadProfile();
+  }, [user]);
+
+  // Cargar pedidos de Supabase
+  useEffect(() => {
+    const fetchOrders = async () => {
+      if (!user) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .select(`
+            *,
+            order_items (
+              product_name,
+              quantity,
+              price_per_unit,
+              total
+            )
+          `)
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching orders:', error);
+        } else if (data) {
+          // Transformar datos para el formato del componente
+          const transformedOrders = data.map((order: any) => {
+            const statusDisplay = getStatusDisplay(order.status);
+            return {
+              id: order.order_number,
+              date: new Date(order.created_at).toISOString().split('T')[0],
+              total: order.total,
+              status: statusDisplay.label,
+              statusColor: statusDisplay.color,
+              items: order.order_items.map((item: any) => ({
+                name: item.product_name,
+                quantity: item.quantity,
+                price: item.total
+              })),
+              address: `${order.delivery_address}, ${order.delivery_city}, ${order.delivery_state}`,
+              paymentMethod: order.payment_method === 'efectivo' ? 'Efectivo' : 'Transferencia bancaria'
+            };
+          });
+          setOrders(transformedOrders);
+        }
+      } catch (error) {
+        console.error('Error loading orders:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, [user]);
+
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
+  };
+
+  const handleSaveProfile = async () => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: profileData.full_name,
+          phone: profileData.phone,
+          address: profileData.address,
+          city: profileData.city,
+          state: profileData.state
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setOriginalProfileData(profileData);
+      setIsEditingProfile(false);
+      toast.success('Perfil actualizado correctamente');
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      toast.error('Error al actualizar el perfil');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setProfileData(originalProfileData);
+    setIsEditingProfile(false);
   };
 
   return (
@@ -119,25 +213,70 @@ function Dashboard() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-12"
+          className="mb-8"
         >
           <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-2">
-            ¡Hola, {userName.split(' ')[0]}! 👋
+            ¡Hola, {profileData.full_name || userName.split(' ')[0]}! 👋
           </h1>
           <p className="text-xl text-gray-600">
-            Aquí puedes ver todos tus pedidos
+            Gestiona tus pedidos y actualiza tu perfil
           </p>
         </motion.div>
 
-        {/* Orders Section */}
-        <div className="space-y-6">
-          <div className="flex items-center gap-3 mb-6">
-            <Package className="w-8 h-8 text-amber-600" />
-            <h2 className="text-3xl font-bold text-gray-900">Mis Pedidos</h2>
-            <span className="bg-amber-600 text-white px-3 py-1 rounded-full text-sm font-bold">
-              {orders.length}
-            </span>
+        {/* Tabs */}
+        <div className="mb-8 border-b border-gray-200">
+          <div className="flex gap-8">
+            <button
+              onClick={() => setActiveTab('orders')}
+              className={`pb-4 px-2 font-bold text-lg transition-colors relative ${
+                activeTab === 'orders'
+                  ? 'text-amber-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Package className="w-5 h-5" />
+                Mis Pedidos
+                <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-sm font-bold">
+                  {orders.length}
+                </span>
+              </div>
+              {activeTab === 'orders' && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute bottom-0 left-0 right-0 h-1 bg-amber-600"
+                />
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveTab('profile')}
+              className={`pb-4 px-2 font-bold text-lg transition-colors relative ${
+                activeTab === 'profile'
+                  ? 'text-amber-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <User className="w-5 h-5" />
+                Mi Perfil
+              </div>
+              {activeTab === 'profile' && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute bottom-0 left-0 right-0 h-1 bg-amber-600"
+                />
+              )}
+            </button>
           </div>
+        </div>
+
+        {/* Orders Tab Content */}
+        {activeTab === 'orders' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Mis Pedidos</h2>
+            </div>
 
           {/* Orders List */}
           <div className="space-y-4">
@@ -197,8 +336,20 @@ function Dashboard() {
             ))}
           </div>
 
+          {/* Loading State */}
+          {loading && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="bg-[#E8E4D9] rounded-2xl p-12 text-center"
+            >
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-red-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Cargando pedidos...</p>
+            </motion.div>
+          )}
+
           {/* Empty State */}
-          {orders.length === 0 && (
+          {!loading && orders.length === 0 && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -218,7 +369,162 @@ function Dashboard() {
               </Link>
             </motion.div>
           )}
-        </div>
+          </div>
+        )}
+
+        {/* Profile Tab Content */}
+        {activeTab === 'profile' && (
+          <div className="max-w-3xl">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Mi Perfil</h2>
+              {!isEditingProfile ? (
+                <button
+                  onClick={() => setIsEditingProfile(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 font-bold transition-colors"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  Editar Perfil
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveProfile}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-bold transition-colors"
+                  >
+                    <Save className="w-4 h-4" />
+                    Guardar
+                  </button>
+                  <button
+                    onClick={handleCancelEdit}
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-bold transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                    Cancelar
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-white rounded-xl shadow-lg border-2 border-gray-100 p-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Full Name */}
+                <div className="md:col-span-2">
+                  <label className="block text-gray-700 font-bold text-sm mb-2">
+                    NOMBRE COMPLETO
+                  </label>
+                  <input
+                    type="text"
+                    value={profileData.full_name}
+                    onChange={(e) => setProfileData({...profileData, full_name: e.target.value})}
+                    disabled={!isEditingProfile}
+                    className={`w-full px-4 py-3 border-2 rounded-xl text-sm ${
+                      isEditingProfile
+                        ? 'border-gray-200 focus:outline-none focus:border-amber-600'
+                        : 'border-gray-200 bg-gray-50 text-gray-600'
+                    }`}
+                    placeholder="Juan Pérez"
+                  />
+                </div>
+
+                {/* Phone */}
+                <div>
+                  <label className="block text-gray-700 font-bold text-sm mb-2">
+                    TELÉFONO
+                  </label>
+                  <input
+                    type="tel"
+                    value={profileData.phone}
+                    onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
+                    disabled={!isEditingProfile}
+                    className={`w-full px-4 py-3 border-2 rounded-xl text-sm ${
+                      isEditingProfile
+                        ? 'border-gray-200 focus:outline-none focus:border-amber-600'
+                        : 'border-gray-200 bg-gray-50 text-gray-600'
+                    }`}
+                    placeholder="3001234567"
+                  />
+                </div>
+
+                {/* City */}
+                <div>
+                  <label className="block text-gray-700 font-bold text-sm mb-2">
+                    CIUDAD
+                  </label>
+                  <input
+                    type="text"
+                    value={profileData.city}
+                    onChange={(e) => setProfileData({...profileData, city: e.target.value})}
+                    disabled={!isEditingProfile}
+                    className={`w-full px-4 py-3 border-2 rounded-xl text-sm ${
+                      isEditingProfile
+                        ? 'border-gray-200 focus:outline-none focus:border-amber-600'
+                        : 'border-gray-200 bg-gray-50 text-gray-600'
+                    }`}
+                    placeholder="Bogotá"
+                  />
+                </div>
+
+                {/* Address */}
+                <div className="md:col-span-2">
+                  <label className="block text-gray-700 font-bold text-sm mb-2">
+                    DIRECCIÓN
+                  </label>
+                  <input
+                    type="text"
+                    value={profileData.address}
+                    onChange={(e) => setProfileData({...profileData, address: e.target.value})}
+                    disabled={!isEditingProfile}
+                    className={`w-full px-4 py-3 border-2 rounded-xl text-sm ${
+                      isEditingProfile
+                        ? 'border-gray-200 focus:outline-none focus:border-amber-600'
+                        : 'border-gray-200 bg-gray-50 text-gray-600'
+                    }`}
+                    placeholder="Calle 123 # 45-67"
+                  />
+                </div>
+
+                {/* State */}
+                <div className="md:col-span-2">
+                  <label className="block text-gray-700 font-bold text-sm mb-2">
+                    DEPARTAMENTO
+                  </label>
+                  <input
+                    type="text"
+                    value={profileData.state}
+                    disabled
+                    className="w-full px-4 py-3 border-2 border-gray-200 bg-gray-100 rounded-xl text-sm text-gray-600 cursor-not-allowed"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Por ahora solo operamos en Cundinamarca
+                  </p>
+                </div>
+              </div>
+
+              {isEditingProfile && (
+                <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-sm text-amber-800">
+                    💡 <strong>Tip:</strong> Mantén tu información actualizada para que tus pedidos lleguen correctamente.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Account Info */}
+            <div className="mt-8 bg-gray-50 rounded-xl p-6 border border-gray-200">
+              <h3 className="font-bold text-gray-900 mb-3">Información de Cuenta</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Email:</span>
+                  <span className="font-medium text-gray-900">{user?.email}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Total de Pedidos:</span>
+                  <span className="font-medium text-gray-900">{orders.length}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

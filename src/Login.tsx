@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { ShoppingCart, User, ChevronDown } from 'lucide-react';
 import CartSidebar from './CartSidebar';
+import { useCart } from './contexts/CartContext';
 import { useAuth } from './contexts/AuthContext';
 
 function Login() {
@@ -10,16 +11,24 @@ function Login() {
   const [password, setPassword] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, user } = useAuth();
+  const { getTotalItems } = useCart();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await login(email, password);
+    setError('');
+    setLoading(true);
+
+    const result = await login(email, password);
+
+    if (result.error) {
+      setError(result.error);
+      setLoading(false);
+    } else {
       navigate('/dashboard');
-    } catch (error) {
-      console.error('Error al iniciar sesión:', error);
     }
   };
 
@@ -115,13 +124,15 @@ function Login() {
             </div>
 
             {/* User Icon */}
-            <Link to="/login">
+            <Link to={user ? "/dashboard" : "/login"}>
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                className={`p-2 rounded-full transition-colors ${
+                  user ? 'bg-green-100 hover:bg-green-200' : 'hover:bg-gray-100'
+                }`}
               >
-                <User className="w-6 h-6 text-gray-700" />
+                <User className={`w-6 h-6 ${user ? 'text-green-600' : 'text-gray-700'}`} />
               </motion.button>
             </Link>
 
@@ -248,15 +259,27 @@ function Login() {
               </motion.div>
             </div>
 
+            {/* Error Message */}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm"
+              >
+                {error}
+              </motion.div>
+            )}
+
             {/* Login Button */}
             <motion.button
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
               type="submit"
-              className="w-full bg-red-600 text-white py-3 rounded-full font-bold text-sm hover:bg-red-700 transition-colors mb-3"
+              disabled={loading}
+              className="w-full bg-red-600 text-white py-3 rounded-full font-bold text-sm hover:bg-red-700 transition-colors mb-3 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              LOGIN
+              {loading ? 'INICIANDO SESIÓN...' : 'LOGIN'}
             </motion.button>
 
             {/* Register Button */}

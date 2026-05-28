@@ -3,8 +3,12 @@ import { Link } from 'react-router-dom';
 import { ShoppingCart, User, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import CartSidebar from './CartSidebar';
+import { useCart } from './contexts/CartContext';
+import { useAuth } from './contexts/AuthContext';
 
 function Farm() {
+  const { user } = useAuth();
+  const { getTotalItems } = useCart();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
@@ -104,13 +108,15 @@ function Farm() {
             </div>
 
             {/* User Icon */}
-            <Link to="/login">
+            <Link to={user ? "/dashboard" : "/login"}>
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                className={`p-2 rounded-full transition-colors ${
+                  user ? 'bg-green-100 hover:bg-green-200' : 'hover:bg-gray-100'
+                }`}
               >
-                <User className="w-6 h-6 text-gray-700" />
+                <User className={`w-6 h-6 ${user ? 'text-green-600' : 'text-gray-700'}`} />
               </motion.button>
             </Link>
 
